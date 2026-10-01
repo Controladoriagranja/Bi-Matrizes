@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="BI Matrizes - acompanhamento da Recria" />
+    <link rel="icon" href="assets/img/favicon-granja.png" />
+    <title>BI Matrizes | Recria</title>
+    <script>
+        (() => {
+            const key = "bi-zootecnico-theme";
+            const saved = localStorage.getItem(key);
+            if (!saved) localStorage.setItem(key, "light");
+            document.documentElement.dataset.theme = saved || "light";
+        })();
+    </script>
+    <link rel="stylesheet" href="assets/vendor/geist/index.css" />
+    <link rel="stylesheet" href="assets/css/app.css?v=7.30" />
+    <link rel="stylesheet" href="assets/css/recria.css?v=1.6" />
+</head>
+<body data-page="recria" class="recria-page">
+    <div class="matrizes-app">
+        <header class="matrizes-topbar">
+            <a class="matrizes-brand" href="index.html" aria-label="Granja Brasília - BI Matrizes">
+                <img class="matrizes-logo logo-light" src="assets/img/logo-granja-brasilia-clara.png?v=1.0" alt="Granja Brasília" />
+                <img class="matrizes-logo logo-dark" src="assets/img/logo-granja-brasilia-oficial.png?v=1.0" alt="" aria-hidden="true" />
+            </a>
+
+            <nav class="matrizes-tabs" aria-label="Módulos de Matrizes">
+                <a class="matrizes-tab active" href="index.html" aria-current="page"><span class="tab-icon">🐔</span><span>Recria</span></a>
+                <button class="matrizes-tab" type="button" data-soon="Produção de Ovos"><span class="tab-icon">◔</span><span>Produção de Ovos</span></button>
+                <button class="matrizes-tab" type="button" data-soon="Incubatório"><span class="tab-icon">◌</span><span>Incubatório</span></button>
+                <button class="matrizes-tab" type="button" data-soon="Embriodiagnóstico"><span class="tab-icon">◍</span><span>Embriodiagnóstico</span></button>
+                <button class="matrizes-tab" type="button" data-soon="Monitoria Sanitária"><span class="tab-icon">▣</span><span>Monitoria Sanitária</span></button>
+            </nav>
+
+            <div class="topbar-actions">
+                <div class="update-card">
+                    <span>Última atualização</span>
+                    <strong id="ultimaAtualizacao">—</strong>
+                </div>
+                <div class="api-dot only"></div>
+                <button class="top-icon-button" data-theme-toggle type="button" aria-label="Alternar tema" title="Alternar tema">
+                    <span data-theme-icon>☾</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="matrizes-layout">
+            <aside class="recria-filters" aria-label="Filtros da Recria">
+                <div class="filters-heading">
+                    <div>
+                        <h2>Ano</h2>
+                    </div>
+                </div>
+                <div class="filter-group standalone">
+                    <select id="filtroAno"><option value="">Todos</option></select>
+                </div>
+
+                <div class="filters-heading mini"><div><h2>Meses</h2></div></div>
+                <div class="filter-group standalone months-only">
+                    <span class="hidden" id="mesResumo">Todos</span>
+                    <div class="month-grid" id="filtroMeses"></div>
+                </div>
+
+                <div class="filters-heading mini"><div><h2>Fazenda</h2></div></div>
+                <div class="filter-group standalone"><select id="filtroFazenda"><option value="">Todas</option></select></div>
+
+                <div class="filters-heading mini"><div><h2>Sexo</h2></div></div>
+                <div class="filter-group standalone"><div class="segment-control" id="filtroSexo"><button type="button" class="active" data-value="femeas">Fêmeas</button><button type="button" data-value="machos">Machos</button></div></div>
+
+                <div class="filters-heading mini"><div><h2>Lote</h2></div></div>
+                <div class="filter-group standalone">
+                    <span class="hidden" id="loteResumo">Todos</span>
+                    <div class="filter-search-wrap"><span>⌕</span><input id="buscaLote" type="search" placeholder="Pesquisar..." autocomplete="off" /></div>
+                    <div class="choice-grid compact" id="filtroLotes"></div>
+                </div>
+
+                <div class="filters-heading mini"><div><h2>Situação Atual</h2></div></div>
+                <div class="filter-group standalone"><div class="choice-grid two" id="filtroStatus"></div></div>
+
+                <div class="filters-heading mini"><div><h2>Linhagem</h2></div></div>
+                <div class="filter-group standalone"><div class="choice-grid two" id="filtroLinhagem"></div></div>
+
+                <div class="filters-heading mini"><div><h2>Idade (semanas)</h2></div></div>
+                <div class="filter-group standalone"><div class="choice-grid compact" id="filtroIdade"></div></div>
+
+                <button class="clear-filters-button" id="limparFiltros" type="button"><span>🗑</span> Limpar Filtros</button>
+                <button class="clear-filters-button hidden" id="limparFiltrosBottom" type="button"></button>
+            </aside>
+
+            <main class="recria-content">
+                <section class="recria-hero">
+                    <div>
+                        <div class="recria-title-line">
+                            <div>
+                                <h1>Recria</h1>
+                            </div>
+                        </div>
+                        <p>Acompanhamento do desempenho da recria por semana de vida.</p>
+                    </div>
+
+                    <div class="period-area">
+                        <div class="quick-period" id="periodoRapido">
+                            <button type="button" data-period="today">Hoje</button>
+                            <button type="button" data-period="7">7 dias</button>
+                            <button type="button" data-period="15">15 dias</button>
+                            <button type="button" data-period="30">30 dias</button>
+                            <button type="button" data-period="90">90 dias</button>
+                            <button type="button" class="active" data-period="year">Ano Atual</button>
+                            <button type="button" data-period="12m">Últimos 12 meses</button>
+                            <button type="button" data-period="all">Todo Histórico</button>
+                        </div>
+                        <div class="period-custom">
+                            <span>Período Personalizado</span>
+                            <div class="period-inputs"><input id="dataInicio" type="date" aria-label="Data inicial" /><span>→</span><input id="dataFim" type="date" aria-label="Data final" /></div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="recria-alert hidden" id="mensagemErro"></div>
+                <div class="recria-info hidden" id="mensagemInfo"></div>
+                <div class="hidden" id="apiState"><span id="apiStateText"></span></div>
+
+                <section class="kpi-grid" aria-label="Indicadores atuais">
+                    <article class="kpi-card kpi-blue"><div class="kpi-icon">▥</div><div class="kpi-body"><span>Viabilidade Atual</span><strong id="kpiViabilidade">—</strong><small id="kpiViabilidadeDiff">Aguardando dados</small></div><div class="kpi-meta" id="kpiViabilidadeStd">vs. STD —</div></article>
+                    <article class="kpi-card kpi-orange"><div class="kpi-icon">◈</div><div class="kpi-body"><span>Peso Médio Atual</span><strong id="kpiPeso">—</strong><small id="kpiPesoDiff">Aguardando dados</small></div><div class="kpi-meta" id="kpiPesoStd">vs. STD —</div></article>
+                    <article class="kpi-card kpi-green"><div class="kpi-icon">⌁</div><div class="kpi-body"><span>Uniformidade Atual</span><strong id="kpiUniformidade">—</strong><small id="kpiUniformidadeDiff">Aguardando dados</small></div><div class="kpi-meta" id="kpiUniformidadeStd">vs. STD —</div></article>
+                    <article class="kpi-card kpi-violet"><div class="kpi-icon">↗</div><div class="kpi-body"><span>GAD Atual</span><strong id="kpiGad">—</strong><small id="kpiGadDiff">Aguardando dados</small></div><div class="kpi-meta" id="kpiGadStd">vs. STD —</div></article>
+                </section>
+
+                <section class="recria-charts-grid">
+                    <article class="recria-chart-card"><header><div><h2>% Viabilidade</h2></div><div class="chart-context"><span>% Viabilidade &nbsp;&nbsp; % STD &nbsp;&nbsp; % Dif</span><strong id="contextViabilidade">—</strong></div></header><div id="chartViabilidade" class="recria-chart"></div></article>
+                    <article class="recria-chart-card"><header><div><h2>% Uniformidade e CV (Coeficiente de Variação)</h2></div><div class="chart-context">% Uniformidade &nbsp;&nbsp; % STD Unif. &nbsp;&nbsp; CV (%)</div></header><div id="chartUniformidade" class="recria-chart"></div></article>
+                    <article class="recria-chart-card"><header><div><h2>% Peso</h2></div><div class="chart-context"><span>Peso Médio &nbsp;&nbsp; STD &nbsp;&nbsp; % Dif.</span><strong id="contextPeso">—</strong></div></header><div id="chartPeso" class="recria-chart"></div></article>
+                    <article class="recria-chart-card"><header><div><h2>GAD</h2></div><div class="chart-context">GAD &nbsp;&nbsp; STD</div></header><div id="chartGad" class="recria-chart"></div></article>
+                </section>
+
+                <div class="recria-footer-note">
+                    <span>Fonte principal: <code>matrizes.acerto_produtor_recria</code></span>
+                    <span id="registrosCarregados">0 registros carregados</span>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <script src="assets/vendor/echarts/echarts.min.js"></script>
+    <script src="assets/js/config.js?v=7.6"></script>
+    <script src="assets/js/api.js?v=8.0"></script>
+    <script src="assets/js/theme.js?v=7.6"></script>
+    <script src="assets/js/recria.js?v=1.2"></script>
+    <script src="assets/js/sidebar.js?v=7.27"></script>
+</body>
+</html>

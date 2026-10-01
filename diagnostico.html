@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Diagnóstico da API — BI Zootécnico</title>
+  <link rel="icon" href="assets/img/favicon-granja.png">
+  <link rel="stylesheet" href="assets/vendor/geist/index.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <style>
+    .diagnostic-grid{display:grid;gap:16px}.diagnostic-pre{white-space:pre-wrap;word-break:break-word;max-height:520px;overflow:auto}
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="page-header">
+      <div><div class="eyebrow">Desenvolvimento</div><h1>Diagnóstico da API</h1><p>Valida Worker, API e catálogo esperado sem carregar dados no GitHub.</p></div>
+    </header>
+    <main class="diagnostic-grid">
+      <section class="card"><h2>Configuração</h2><p id="configApi"></p></section>
+      <section class="card"><h2>Health</h2><pre class="diagnostic-pre" id="health">Carregando...</pre></section>
+      <section class="card"><h2>Catálogo esperado</h2><pre class="diagnostic-pre" id="catalogo">Carregando...</pre></section>
+    </main>
+  </div>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/diagnostico.js"></script>
+</body>
+</html>
