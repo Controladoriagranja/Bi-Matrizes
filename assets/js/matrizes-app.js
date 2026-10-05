@@ -7,7 +7,7 @@
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const filterLabels={year:'Ano',week:'Semana',farm:'Fazenda',lot:'Lote',house:'Galpão',lineage:'Linhagem',age:'Idade (semanas)',origin:'Origem',stage:'Estágio da incubadora',status:'Situação atual'};
-  const state={rows:[],extra:[],charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,controller:null,gad:new Map(),hasSavedFilters:false};
+  const state={rows:[],extra:[],charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false};
   const storageKey=`bi-matrizes-filtros-${page.module}`;
   try {
     const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null');
@@ -38,7 +38,7 @@
     return String(value);
   }
   function calc(rows,kind=page.calc) {
-    let result=kind==='recria'?D.recria(rows,state.sex,state.gad):D[kind](rows);
+    let result=kind==='recria'?D.recria(rows,state.sex):D[kind](rows);
     return {...result,discardTarget:settings.discardTarget,incubationTarget:settings.incubationTarget};
   }
   function sexRows(rows) {
@@ -76,8 +76,8 @@
           <section class="mz-kpis" id="kpis" aria-label="Indicadores do período"></section>
           <section class="mz-charts" aria-label="Gráficos">${page.charts.map((spec,index)=>`${spec.section&&spec.section!==page.charts[index-1]?.section?`<h2 class="mz-section-title">${spec.section}</h2>`:''}
             <article class="mz-chart-card ${spec.wide?'wide':''}" id="card-${spec.id}"><div class="mz-chart-head"><div><h2>${spec.title}</h2><p id="caption-${spec.id}">${spec.axis} · ${spec.unit||'Percentual'}</p></div><div class="mz-chart-actions"><button type="button" data-table="${spec.id}" aria-expanded="false" aria-controls="table-${spec.id}">Dados</button><button type="button" data-expand="${spec.id}" aria-label="Ampliar ${spec.title}" aria-expanded="false">⤢</button></div></div><div id="chart-${spec.id}" class="mz-chart" role="img" aria-label="${spec.title}. Os valores estão disponíveis no botão Dados."></div><div id="table-${spec.id}" class="mz-table-wrap hidden"></div></article>`).join('')}</section>
-          ${page.extraTable==='incubacao'?'<section class="mz-receipts"><button id="receiptsButton" class="mz-button" aria-expanded="false" aria-controls="receiptsPanel">Ovos enviados pela granja e recebidos no incubatório</button><div id="receiptsPanel" class="mz-comparison hidden"></div></section>':''}
-          <footer class="mz-footer"><span id="periodCaption">Selecione o contexto nos filtros.</span><a href="docs/INDICADORES_MATRIZES.md" target="_blank" rel="noopener">Regras dos indicadores</a></footer>
+
+          <footer class="mz-footer"><span id="periodCaption">Selecione o contexto nos filtros.</span></footer>
         </main>
       </div>`;
     if(window.ThemeManager)document.querySelector('[data-theme-icon]').textContent=ThemeManager.get()==='dark'?'☀':'☾';
@@ -94,7 +94,7 @@
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExpanded();});
     window.addEventListener('resize',()=>state.charts.forEach(chart=>chart.resize()));
     document.addEventListener('dashboard:theme-changed',()=>renderCharts());
-    $('receiptsButton')?.addEventListener('click',receipts);
+
   }
   function closeExpanded() {
     document.querySelectorAll('.mz-chart-card.expanded').forEach(card=>{
@@ -111,24 +111,38 @@
     const values=[...new Set(rows.map(r=>String(r[key]??'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
     if(!values.length&&['stage','origin','status','house','lineage'].includes(key))return '';
     const sel=selected(key),label=filterLabels[key];
-    // Keep a selected option visible even when another filter excludes its data.
-    const allValues=[...new Set([...values,...sel])];
+    const allValues=values;
     const display=v=>key==='week'?groupLabel(v,'week'):v;
     return `<div class="mz-filter"><span id="label-${key}">${label}</span><details class="mz-choice" data-filter-choice="${key}"><summary aria-labelledby="label-${key}">${sel.size?`${sel.size} selecionado(s)`:'Todos'}</summary><div class="mz-options">${['lot','farm'].includes(key)?`<input class="mz-search" data-search="${key}" type="search" placeholder="Pesquisar ${label.toLowerCase()}" aria-label="Pesquisar ${label.toLowerCase()}">`:''}${allValues.length?allValues.map(value=>`<label><input type="checkbox" data-filter="${key}" value="${escape(value)}" ${sel.has(value)?'checked':''}><span>${escape(display(value))}</span></label>`).join(''):'<p class="mz-unavailable">Sem opções</p>'}</div></details></div>`;
   }
+  function reconcileFilters(changed) {
+    const rows=sexRows([...state.rows,...state.extra]);
+    const context=rows.filter(row=>!selected(changed).size||selected(changed).has(String(row[changed]??'')));
+    for(const [key,values] of Object.entries(state.filters)) {
+      if(key===changed)continue;
+      const available=new Set(context.map(row=>String(row[key]??'')));
+      for(const value of values)if(!available.has(value))values.delete(value);
+    }
+  }
   function renderFilters() {
     const open=new Set([...document.querySelectorAll('[data-filter-choice][open]')].map(el=>el.dataset.filterChoice));
+    const scrolls=[document.scrollingElement,...document.querySelectorAll('.mz-filters,.mz-filter-fields,.mz-options')].map(el=>({el,key:el.closest('[data-filter-choice]')?.dataset.filterChoice,top:el.scrollTop}));
+    const active=document.activeElement;
+    const focus=active?.matches('[data-filter]')?{key:active.dataset.filter,value:active.value}:null;
+    const searches=Object.fromEntries([...document.querySelectorAll('[data-search]')].map(el=>[el.dataset.search,el.value]));
     const rows=sexRows([...state.rows,...state.extra]);
-    $('filterFields').innerHTML=filterChoice('year',rows)+`
+    const choices=key=>filterChoice(key,rows.filter(row=>matches(row,key)));
+
+    $('filterFields').innerHTML=choices('year')+`
       <div class="mz-filter"><span>Meses</span><div class="mz-months">${months.map((label,i)=>`<button type="button" data-month="${i+1}" class="${selected('month').has(String(i+1))?'active':''}" aria-pressed="${selected('month').has(String(i+1))}">${label}</button>`).join('')}</div></div>`+
-      filterChoice('week',rows)+page.filters.map(key=>key==='sex'?`
-        <div class="mz-filter"><span>Sexo</span><div class="mz-sex">${[['femeas','Fêmeas'],['machos','Machos']].map(([value,label])=>`<button type="button" data-sex="${value}" class="${state.sex===value?'active':''}" aria-pressed="${state.sex===value}">${label}</button>`).join('')}</div></div>`:filterChoice(key,rows)).join('')+`
+      choices('week')+page.filters.map(key=>key==='sex'?`
+        <div class="mz-filter"><span>Sexo</span><div class="mz-sex">${[['femeas','Fêmeas'],['machos','Machos']].map(([value,label])=>`<button type="button" data-sex="${value}" class="${state.sex===value?'active':''}" aria-pressed="${state.sex===value}">${label}</button>`).join('')}</div></div>`:choices(key)).join('')+`
       <div class="mz-filter"><label for="startDate">Data inicial</label><input id="startDate" type="date" value="${escape(state.start)}" ${state.end?`max="${escape(state.end)}"`:''}></div>
       <div class="mz-filter"><label for="endDate">Data final</label><input id="endDate" type="date" value="${escape(state.end)}" ${state.start?`min="${escape(state.start)}"`:''}></div>
-      <div class="mz-filter"><button id="clearFilters" class="mz-clear">Limpar filtros</button></div>`;
+      <div class="mz-filter"><button id="clearFilters" class="button button-ghost-danger">Limpar filtros</button></div>`;
     document.querySelectorAll('[data-filter-choice]').forEach(el=>{el.open=open.has(el.dataset.filterChoice);});
     document.querySelectorAll('[data-filter]').forEach(input=>input.addEventListener('change',()=>{
-      const set=selected(input.dataset.filter);input.checked?set.add(input.value):set.delete(input.value);saveFilters();render();
+      const set=selected(input.dataset.filter);input.checked?set.add(input.value):set.delete(input.value);reconcileFilters(input.dataset.filter);saveFilters();render();
     }));
     document.querySelectorAll('[data-month]').forEach(button=>button.addEventListener('click',()=>{
       const set=selected('month');set.has(button.dataset.month)?set.delete(button.dataset.month):set.add(button.dataset.month);saveFilters();render();
@@ -137,6 +151,9 @@
     document.querySelectorAll('[data-search]').forEach(input=>input.addEventListener('input',()=>{
       const term=input.value.toLocaleLowerCase('pt-BR');input.parentElement.querySelectorAll('label').forEach(label=>label.hidden=!label.textContent.toLocaleLowerCase('pt-BR').includes(term));
     }));
+    document.querySelectorAll('[data-search]').forEach(input=>{input.value=searches[input.dataset.search]||'';input.dispatchEvent(new Event('input'));});
+    if(focus){const input=[...document.querySelectorAll('[data-filter]')].find(el=>el.dataset.filter===focus.key&&el.value===focus.value);input?.focus({preventScroll:true});}
+    scrolls.forEach(({el,key,top})=>{const target=el.isConnected?el:key?document.querySelector(`[data-filter-choice="${key}"] .mz-options`):null;if(target)target.scrollTop=top;});
     $('startDate').addEventListener('change',()=>{state.start=$('startDate').value;saveFilters();render();});
     $('endDate').addEventListener('change',()=>{state.end=$('endDate').value;saveFilters();render();});
     $('clearFilters').addEventListener('click',()=>{state.filters={};state.start='';state.end='';saveFilters();render();});
@@ -158,24 +175,24 @@
     const c=colors(),unit=spec.unit||'%',hasData=data.some(p=>spec.series.some(s=>p[s.key]!=null));
     const hasSecond=spec.series.some(s=>s.axis===1);
     let chart=state.charts.get(spec.id);
-    if(!chart){chart=echarts.init($(`chart-${spec.id}`));state.charts.set(spec.id,chart);}
+    if(!chart){chart=echarts.init($(`chart-${spec.id}`),null,{renderer:'svg'});state.charts.set(spec.id,chart);}
     const series=spec.series.map((s,i)=>({
       name:s.name,type:s.type,data:data.map(p=>p[s.key]??null),yAxisIndex:s.axis||0,
       stack:s.stack,connectNulls:false,symbolSize:4,showSymbol:data.length<24,
       barMaxWidth:24,itemStyle:{color:c.series[s.color??i%c.series.length],borderRadius:s.stack?0:[3,3,0,0]},
       lineStyle:{width:2,type:s.dash?'dashed':'solid'},
-      emphasis:{focus:'series'},labelLayout:{hideOverlap:true},label:{show:s.type==='bar'&&data.length<=8,position:s.stack?'inside':'top',fontSize:9,formatter:p=>p.value==null?'':Number(p.value).toLocaleString('pt-BR',{maximumFractionDigits:1})}
+      emphasis:{focus:'series'},labelLayout:{hideOverlap:true},label:{show:s.type==='bar'&&data.length<=8,position:s.stack?'inside':'top',fontSize:11,formatter:p=>p.value==null?'':Number(p.value).toLocaleString('pt-BR',{maximumFractionDigits:1})}
     }));
-    const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:9,color:c.text,formatter:v=>format(v,unit,unit==='ovos'||unit==='g'?0:1)},splitLine:{lineStyle:{color:c.grid}}};
+    const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,formatter:v=>format(v,unit,unit==='ovos'||unit==='g'?0:1)},splitLine:{lineStyle:{color:c.grid}}};
     chart.setOption({
       animationDuration:250,color:c.series,textStyle:{fontFamily:'Geist Variable, Geist, sans-serif',color:c.text},
-      tooltip:{trigger:'axis',backgroundColor:c.bg,borderColor:c.grid,textStyle:{color:c.fg,fontSize:11},valueFormatter:(value)=>value==null?'Sem medição':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2})},
-      legend:{bottom:0,type:'scroll',textStyle:{color:c.text,fontSize:9},itemWidth:13,itemHeight:7},
+      tooltip:{trigger:'axis',backgroundColor:c.bg,borderColor:c.grid,textStyle:{color:c.fg,fontSize:13},valueFormatter:(value)=>value==null?'Sem medição':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2})},
+      legend:{bottom:0,type:'scroll',textStyle:{color:c.text,fontSize:11},itemWidth:13,itemHeight:7},
       grid:{top:28,left:12,right:hasSecond?12:18,bottom:data.length>24?66:38,containLabel:true},
-      xAxis:{type:'category',data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:9,color:c.text,hideOverlap:true}},
+      xAxis:{type:'category',data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,hideOverlap:true}},
       yAxis:hasSecond?[axis,{...axis,position:'right',splitLine:{show:false},axisLabel:{...axis.axisLabel,formatter:v=>format(v,spec.series.find(s=>s.axis===1).unit||'pp',1)}}]:axis,
-      dataZoom:data.length>24?[{type:'inside',start:0,end:100},{type:'slider',height:13,bottom:22,borderColor:c.grid,textStyle:{color:c.text,fontSize:8}}]:[],
-      graphic:hasData?[]:[{type:'text',left:'center',top:'middle',style:{text:state.loaded?'Sem dados para os filtros selecionados':'Aguardando dados da API',font:'12px "Geist Variable", sans-serif',fill:c.text}}],
+      dataZoom:data.length>24?[{type:'inside',start:0,end:100},{type:'slider',height:13,bottom:22,borderColor:c.grid,textStyle:{color:c.text,fontSize:10}}]:[],
+      graphic:hasData?[]:[{type:'text',left:'center',top:'middle',style:{text:state.loaded?'Sem dados para os filtros selecionados':'Aguardando dados da API',font:'14px "Geist Variable", sans-serif',fill:c.text}}],
       series
     },true);
     $(`chart-${spec.id}`).setAttribute('aria-label',`${spec.title}. ${data.length} períodos. ${hasData?'Consulte os valores no botão Dados.':'Sem dados disponíveis.'}`);
@@ -187,7 +204,7 @@
     page.charts.forEach(spec=>{
       const rows=filtered(spec.source==='extra'?state.extra:state.rows,spec.source==='extra',spec.allPeriods);
       renderChart(spec,points(rows,spec));
-      if(spec.allPeriods)$(`caption-${spec.id}`).textContent=`${spec.axis} · Histórico completo, independente do período selecionado`;
+      if(spec.allPeriods)$(`caption-${spec.id}`).textContent=`${spec.axis} · ${state.complete?'Histórico completo':'Histórico parcial em carregamento'}, independente do período selecionado`;
       if(spec.source==='extra'){
         const ignored=[...unavailableFilters(state.extra)].filter(key=>selected(key).size).map(key=>filterLabels[key]);
         if(ignored.length)$(`caption-${spec.id}`).textContent+=` · ${ignored.join(' / ')} indisponível nesta fonte`;
@@ -196,7 +213,7 @@
   }
   function render() {
     const rows=filtered(state.rows);
-    state.gad=D.withGad(sexRows(state.rows),state.sex);
+    
     renderFilters();renderKpis(rows);renderCharts();
     $('recordCount').textContent=state.loaded?`${rows.length.toLocaleString('pt-BR')} de ${state.rows.length.toLocaleString('pt-BR')} registros${page.extraTable?` · ${filtered(state.extra,true).length.toLocaleString('pt-BR')} registros ${page.extraTable==='incubacao'?'de incubação':'da curva'}`:''}`:'—';
     const dates=rows.map(r=>r.date).sort();
@@ -205,27 +222,34 @@
     if(state.loaded&&page.extraTable==='incubacao'&&filtered(state.extra,true).some(r=>D.stockDays(r.raw.dias_estoque).length!==1))messages.push('Estoque médio indisponível nos períodos com várias idades de ovos na mesma linha. O mínimo e o máximo usam as idades informadas; a média exige a quantidade de ovos de cada idade.');
     if(state.loaded&&page.extraTable==='acerto_produtor_producao')messages.push('A curva por lote usa o histórico do Acerto do Produtor; o gráfico diário usa os registros de produção da granja. Selecione um lote para acompanhar sua curva individual.');
     $('notice').textContent=messages.join(' ');$('notice').classList.toggle('hidden',!messages.length);
-    // Additional receipts data is always refreshed against the current filters.
-    if(receiptState.loaded&&!$('receiptsPanel')?.classList.contains('hidden'))renderReceipts();
+
   }
   async function loadTable(table,signal,onProgress) {
     const endpoint=(APP_CONFIG.endpoints.matrizesDados||'/api/portal/matrizes/dados/')+encodeURIComponent(table);
     const records=[],ids=new Set();let total=null,pagesTotal=null,pageSize=null;
-    for(let pageNumber=1;;pageNumber++) {
+    async function fetchPage(pageNumber) {
       const response=await apiGet(endpoint,{pagina:pageNumber,tamanho:500},{signal});
       if(response.tabela!==table||!Array.isArray(response.dados))throw new Error(`Resposta inválida para a tabela ${table}.`);
-      const reportedPages=Number(response.total_paginas),reportedTotal=Number(response.total);
-      if(!Number.isSafeInteger(reportedPages)||reportedPages<1||!Number.isSafeInteger(reportedTotal)||reportedTotal<0||Number(response.pagina)!==pageNumber)throw new Error(`Paginação inválida na tabela ${table}.`);
-      if(pagesTotal==null){pagesTotal=reportedPages;total=reportedTotal;pageSize=Number(response.tamanho);}
-      if(pagesTotal!==reportedPages||total!==reportedTotal)throw new Error('A base mudou durante a consulta. Atualize para carregar um conjunto consistente.');
-      if(pageNumber>1&&(!response.dados.length||Number(response.tamanho)!==pageSize))throw new Error(`Página incompleta na tabela ${table}. Atualize a consulta.`);
-      for(const row of response.dados){if(row.id!=null){if(ids.has(String(row.id)))throw new Error(`A API repetiu registros entre páginas de ${table}.`);ids.add(String(row.id));}records.push(row);}
-      onProgress?.(`${table}: ${records.length.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} registros`);
-      if(pageNumber>=pagesTotal)break;
-      if(records.length>=total)throw new Error(`Total e paginação divergentes em ${table}.`);
+      const count=Number(response.total),pages=Number(response.total_paginas);
+      if(!Number.isSafeInteger(count)||count<0||!Number.isSafeInteger(pages)||pages<0||Number(response.pagina)!==pageNumber)throw new Error(`Paginação inválida em ${table}.`);
+      if(total===null){total=count;pagesTotal=pages;pageSize=Number(response.tamanho);}
+      if(total!==count||pagesTotal!==pages||pageSize!==Number(response.tamanho))throw new Error('A base mudou durante a consulta. Atualize novamente.');
+      if(total>0&&!response.dados.length)throw new Error(`Página incompleta em ${table}.`);
+      for(const row of response.dados){if(row.id!=null){if(ids.has(String(row.id)))throw new Error(`Registros repetidos em ${table}.`);ids.add(String(row.id));}records.push(row);}
     }
-    if(records.length!==total)throw new Error(`Consulta incompleta em ${table}: ${records.length} de ${total} registros. Os indicadores não serão calculados com uma base parcial.`);
-    return enrich(D.prepare(table,records));
+    const prepared=()=>enrich(D.prepare(table,records)).filter(row=>pageId!=='producao'||row.year!=='2025');
+    await fetchPage(1);
+    if(pagesTotal>1)await fetchPage(pagesTotal);
+    onProgress?.(prepared(),records.length,total);
+    // Tail pages usually contain the latest loads. Date completeness is only
+    // guaranteed after all pages: the existing API has no date-range parameter.
+    const pending=Array.from({length:Math.max(0,pagesTotal-2)},(_,i)=>pagesTotal-1-i);
+    for(let i=0;i<pending.length;i+=3){
+      await Promise.all(pending.slice(i,i+3).map(fetchPage));
+      onProgress?.(prepared(),records.length,total);
+    }
+    if(records.length!==total)throw new Error(`Consulta incompleta em ${table}: ${records.length} de ${total} registros.`);
+    return prepared();
   }
   function enrich(rows) {
     for(const row of rows){
@@ -239,50 +263,40 @@
   async function load() {
     state.controller?.abort();const controller=new AbortController();state.controller=controller;
     const timeout=setTimeout(()=>controller.abort('timeout'),120000);
-    $('refresh').disabled=true;$('error').classList.add('hidden');state.loaded=false;state.rows=[];state.extra=[];
-    receiptState.controller?.abort();receiptState.loaded=false;receiptState.rows=[];receiptState.granja=[];
-    if($('receiptsPanel')){$('receiptsPanel').classList.add('hidden');$('receiptsButton').setAttribute('aria-expanded','false');}
+    $('refresh').disabled=true;$('error').classList.add('hidden');state.loaded=false;state.complete=false;state.rows=[];state.extra=[];
     $('ultimaAtualizacao').textContent='—';$('loadStatus').textContent='Conectando ao Worker';render();
     try {
-      // Sequential table loads keep progress readable and avoid saturating the API.
-      state.rows=await loadTable(page.table,controller.signal,message=>{$('loadStatus').textContent=message;});
-      if(page.extraTable)state.extra=D.preferDaily(await loadTable(page.extraTable,controller.signal,message=>{$('loadStatus').textContent=message;}));
+      const progress=(key,table)=>(rows,count,total)=>{
+        if(state.controller!==controller||controller.signal.aborted)return;
+        state[key]=key==='extra'?D.preferDaily(rows):rows;
+        if(!state.hasSavedFilters){
+          const latest=[...state.rows,...state.extra].map(row=>row.date).sort().at(-1);
+          if(latest){const date=D.date(latest);date.setUTCDate(1);date.setUTCMonth(date.getUTCMonth()-1);state.start=D.iso(date);state.end=latest;}
+        }
+        state.loaded=true;
+        $('loadStatus').textContent=`Prévia parcial dos últimos dois meses · ${table}: ${count.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} · carregando histórico`;
+        render();
+      };
+      const tasks=[loadTable(page.table,controller.signal,progress('rows',page.table))];
+      if(page.extraTable)tasks.push(loadTable(page.extraTable,controller.signal,progress('extra',page.extraTable)));
+      const results=await Promise.all(tasks);
+      state.rows=results[0];if(page.extraTable)state.extra=D.preferDaily(results[1]);
       state.loaded=true;
+      if(pageId==='producao')selected('year').delete('2025');
       const supported=new Set(['year','month','week',...page.filters]);
       for(const key of Object.keys(state.filters)) {
         if(!supported.has(key)||!state.rows.concat(state.extra).some(r=>r[key]!==''&&r[key]!=null))delete state.filters[key];
       }
-      if(!state.hasSavedFilters&&!selected('year').size&&!page.allYears){const latest=[...state.rows].sort((a,b)=>b.date.localeCompare(a.date))[0];if(latest)selected('year').add(latest.year);}
+
       const latestLoad=[...state.rows,...state.extra].map(r=>D.text(r.raw.carregado_em)).filter(Boolean).sort().at(-1);
       $('ultimaAtualizacao').textContent=latestLoad?`${dayLabel(latestLoad.slice(0,10))} · ${latestLoad.slice(11,16)}`:'Não informada';
-      $('loadStatus').textContent='Dados carregados · histórico completo';render();
+      state.complete=true;$('loadStatus').textContent='Dados carregados · histórico completo';render();
     } catch(error) {
       if(state.controller!==controller)return;
-      state.rows=[];state.extra=[];state.loaded=false;$('loadStatus').textContent='Consulta indisponível';
-      $('error').textContent=controller.signal.aborted?'A consulta excedeu o tempo de espera. Tente atualizar novamente.':error.message;
+      controller.abort();state.rows=[];state.extra=[];state.loaded=false;$('loadStatus').textContent='Consulta indisponível';
+      $('error').textContent=controller.signal.reason==='timeout'?'A consulta excedeu o tempo de espera. Tente atualizar novamente.':error.message;
       $('error').classList.remove('hidden');render();
     } finally {clearTimeout(timeout);if(state.controller===controller)$('refresh').disabled=false;}
-  }
-  const receiptState={rows:[],granja:[],loaded:false,controller:null};
-  async function receipts() {
-    const panel=$('receiptsPanel'),button=$('receiptsButton');
-    if(!panel.classList.contains('hidden')){panel.classList.add('hidden');button.setAttribute('aria-expanded','false');return;}
-    panel.classList.remove('hidden');button.setAttribute('aria-expanded','true');
-    if(receiptState.loaded){renderReceipts();return;}
-    const controller=new AbortController();receiptState.controller=controller;
-    const timeout=setTimeout(()=>controller.abort(),120000);button.disabled=true;
-    panel.innerHTML='<p class="mz-notice" role="status">Consultando ovos enviados e recebidos…</p>';
-    try {
-      receiptState.granja=await loadTable('granja',controller.signal);
-      receiptState.rows=await loadTable('inc',controller.signal);
-      receiptState.loaded=true;renderReceipts();
-    } catch(error) {panel.innerHTML=`<p class="mz-notice mz-error" role="alert">${escape(controller.signal.aborted?'Consulta interrompida.':error.message)}</p>`;}
-    finally{clearTimeout(timeout);button.disabled=false;}
-  }
-  function renderReceipts() {
-    const rows=receiptState.rows.filter(r=>matches(r)),granja=receiptState.granja.filter(r=>matches(r));
-    const shipped=D.sum(granja,r=>r.raw.incubaveis_granja),received=D.sum(rows,r=>r.raw.total);
-    $('receiptsPanel').innerHTML=`<div class="mz-notice">Enviados: ovos incubáveis da granja, pela data de produção. Recebidos: total no incubatório, pela data de recebimento. As datas representam etapas diferentes; estes totais não constituem conciliação de remessas.</div><div class="mz-kpis"><article class="mz-kpi"><span>Incubáveis na granja</span><strong>${format(shipped,'ovos',0)}</strong><small>${granja.length} registros</small></article><article class="mz-kpi"><span>Recebidos no incubatório</span><strong>${format(received,'ovos',0)}</strong><small>${rows.length} registros</small></article></div>`;
   }
   renderShell();render();load();
 })();

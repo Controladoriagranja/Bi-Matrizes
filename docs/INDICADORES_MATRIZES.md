@@ -2,7 +2,7 @@
 
 As quatro telas (Recria, Produção, Incubatório e Embriodiagnóstico) consultam o Worker da CENTRAL, enviando `Authorization: Bearer` com o token de `sessionStorage.granjabi_auth_token`. Os sete prints são seções dessas telas. Nenhuma credencial Basic é incluída no frontend. As rotas são `/api/portal/matrizes/dados/{tabela}`, com `pagina` e `tamanho`, conforme as respostas fornecidas.
 
-Todas as páginas são lidas antes de apresentar indicadores. Mudanças de total durante a consulta, páginas repetidas ou uma quantidade final diferente do total geram erro e impedem cálculo com base parcial. Não há importação automática da planilha, dados de demonstração nem uso do cache dos prints em produção.
+Uma prévia parcial é exibida durante o carregamento; todas as páginas são verificadas antes de indicar histórico completo. Mudanças de total durante a consulta, páginas repetidas ou uma quantidade final diferente do total geram erro e impedem cálculo com base parcial. Não há importação automática da planilha, dados de demonstração nem uso do cache dos prints em produção.
 
 ## Regras implementadas — aguardam conferência das medidas do Excel
 
@@ -12,7 +12,7 @@ O usuário informou em 05/10/2026 que vai conferir as regras de cálculo. A impl
 | --- | --- | --- |
 | Viabilidade | acerto_produtor_recria | Média de `viab_fem` / `viab_mac` ponderada pelas aves alojadas `cab_femeas` / `cab_macho`; STD pelo mesmo peso |
 | Peso, uniformidade, CV | acerto_produtor_recria | Média das medições ponderada pelo saldo de aves do sexo escolhido; peso em gramas, uniformidade/CV em % |
-| GAD | acerto_produtor_recria | Por lote/galpão/lado, diferença entre pesagens positivas consecutivas dividida pelos dias entre as datas; depois ponderada pelo saldo de aves. A pesagem anterior é procurada no histórico completo, mesmo fora do filtro de datas |
+| GAD | acerto_produtor_recria | Gramas de ração por ave por dia: consu_ali_gr_femeas / consu_ali_gr_machos; STD: consu_ali_std_femeas / consu_ali_std_machos. Ponderação pelo saldo de aves do sexo selecionado. Não é ganho de peso |
 | Produção semanal e diária | granja | `100 × soma(ovos_produzidos) / soma(saldo_femeas)`. Em registros diários, a soma dos saldos representa aves-dia. STD `prod_std_pct` ponderado pelos mesmos saldos |
 | Curva por lote | acerto_produtor_producao | `producao` e `producao_std` ponderados por `saldo_femea`, agrupados por idade. O percentual do relatório já considera o intervalo do movimento. Para um mesmo lote/galpão, preferir registros diários quando presentes, evitando misturar diário e semanal |
 | Aproveitamento na granja | granja | `100 × soma(incubaveis_granja) / soma(ovos_produzidos)`; perdas = 100 − aproveitamento |
@@ -40,7 +40,7 @@ Acerto: última carga para a mesma empresa/unidade/fazenda/lote/galpão/lado/dat
 
 Para compartilhar os filtros de Produção, o lote do Acerto no formato numérico `399.08P` é exibido como lote `399`, mantendo o galpão em campo próprio. Galpões numéricos `08` e `8` usam a mesma chave. A identidade original do relatório é preservada no registro bruto e no controle de cargas. Lotes alfanuméricos como `PL3306-26` não são alterados.
 
-Linhas sem data real, sem lote ou com lote Total/Subtotal não entram nos indicadores. Os totais de registros exibidos são os detalhes válidos após esse tratamento; o carregamento completo é verificado antes de excluir linhas.
+Linhas sem data real, sem lote ou com lote Total/Subtotal não entram nos indicadores. Os totais de registros exibidos são os detalhes válidos após esse tratamento; a contagem bruta retornada pela API é verificada ao concluir o carregamento.
 
 ## Pendências em standby
 
@@ -50,7 +50,6 @@ Linhas sem data real, sem lote ou com lote Total/Subtotal não entram nos indica
 - Distribuição de ovos por dia de estoque para calcular a média onde `dias_estoque` contém listas.
 - Relatório de Monitoria Sanitária: aparece no menu da planilha, mas não há print próprio nem tabela correspondente nas sete respostas. Não foi criado um relatório com dados presumidos.
 - Acesso autenticado real ao Worker para validar resposta completa, permissões e comportamento em produção. A sessão da CENTRAL não estava disponível aos testes; testes de integração usam respostas simuladas com o mesmo contrato e os exemplos fornecidos.
-- O botão de enviados/recebidos usa `granja.incubaveis_granja` pela data de produção e `inc.total` pela data de recebimento. Isso compara etapas distintas e não calcula divergência de remessas. Exige chave de envio/recebimento e cadastro comum de lotes/fazendas para conciliação exata.
 
 ## Aparência e publicação
 
@@ -61,3 +60,9 @@ Entradas ativas: `index.html`, `producao.html`, `incubatorio.html`, `embrio.html
 O gráfico anual consulta todos os períodos mantendo as dimensões selecionadas; os demais gráficos usam o período dos filtros. Em incubação/estoque, dimensões ausentes na tabela `incubacao` (como origem ou linhagem sem cadastro) não são aplicadas e essa limitação é informada no cabeçalho do gráfico quando o filtro é selecionado.
 
 Validação local: `node --test tests/matrizes-data.test.cjs`; verificação de integração/layout: `node tests/matrizes-browser.mjs` com Playwright instalado. Os exemplos reais são lidos dos anexos locais somente para testes e não são incluídos no site.
+
+## Carregamento e filtros
+
+O frontend consulta a primeira e a última página para apresentar uma prévia parcial com o intervalo dos dois meses mais recentes encontrados. As demais páginas são consultadas em grupos de três, em segundo plano. A mensagem de histórico completo só aparece após validar todos os registros. A rota existente aceita apenas paginação, sem filtros de data: não é possível garantir que os dois meses estejam completos antes de terminar a consulta. Filtrar datas e excluir 2025 no servidor exigem suporte adicional no backend; por enquanto 2025 é removido dos indicadores, das opções e das curvas de Produção no frontend.
+
+As opções dos filtros respeitam os demais filtros ativos. Gráficos usam SVG para preservar nitidez na ampliação. GAD: referência técnica https://pt.engormix.com/avicultura/manejo-pintinhos/manejo-recria-matrizes-com_a38190/.

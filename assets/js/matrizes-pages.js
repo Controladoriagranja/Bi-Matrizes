@@ -8,8 +8,8 @@
         {id:'viabilidade',title:'Viabilidade',axis:'Semana de vida',series:compare('viab','Viabilidade','viabStd','viabDiff')},
         {id:'uniformidade',title:'Uniformidade e CV',axis:'Semana de vida',series:[series('uniform','Uniformidade'),series('uniformStd','STD Uniformidade','line',{dash:true,color:1}),series('cv','CV','line',{color:2})]},
         {id:'peso',title:'Peso médio',axis:'Semana de vida',unit:'g',series:compare('weight','Peso médio','weightStd','weightDiff','g')},
-        {id:'gad',title:'Ganho médio diário',axis:'Semana de vida',unit:'g/dia',series:compare('gad','GAD','gadStd')}
-      ],kpis:[['viab','Viabilidade','%'],['uniform','Uniformidade','%'],['weight','Peso médio','g'],['gad','GAD','g/dia']]},
+        {id:'gad',title:'GAD (Gramas por Ave por Dia)',axis:'Semana de vida',unit:'g/ave/dia',series:compare('gad','GAD','gadStd')}
+      ],kpis:[['viab','Viabilidade','%'],['uniform','Uniformidade','%'],['weight','Peso médio','g'],['gad','GAD','g/ave/dia']]},
     producao: {file:'producao.html',module:'Produção',title:'Produção de ovos',subtitle:'Produção, aproveitamento e qualidade dos ovos na granja.',table:'granja',calc:'production',filters:['farm','lot','house','lineage','age'],group:'week',
       charts:[
         {id:'producao',title:'Produção semanal',axis:'Semana',series:compare('production','Produção','productionStd','diff')},
@@ -62,5 +62,12 @@
   pages.incubatorio.title='Incubatório';
   pages.incubatorio.subtitle='Eclosão, descarte, faixas etárias, incubação e estoque dos ovos.';
   pages.incubatorio.charts=[...pages.incubatorio.charts.map(chart=>({...chart,section:'Eclosão e descarte'})),...hatchHistory,...incubationCharts];
+  const connectors=new Set(['de','da','do','das','dos','e','ou','por','na','no','nas','nos','em','a','até']);
+  const titleCase=value=>value.split(' ').map((word,index)=>index&&connectors.has(word.toLocaleLowerCase('pt-BR'))?word.toLocaleLowerCase('pt-BR'):word.charAt(0).toLocaleUpperCase('pt-BR')+word.slice(1)).join(' ');
+  for(const page of Object.values(pages)) {
+    page.title=titleCase(page.title);
+    page.charts.forEach(chart=>{chart.title=titleCase(chart.title);if(chart.section)chart.section=titleCase(chart.section);});
+    page.kpis.forEach(kpi=>kpi[1]=titleCase(kpi[1]));
+  }
   root.MatrizesPages={recria:pages.recria,producao:pages.producao,incubatorio:pages.incubatorio,embrio:pages.embrio};
 })(globalThis);

@@ -98,22 +98,8 @@
   }
   function recriaFields(sex) {
     return sex === 'machos'
-      ? {viab:'viab_mac', viabStd:'std_viab_mac', weight:'ps_medio_machos', weightStd:'ps_medio_std_machos', uniform:'unif_machos', uniformStd:'unif_std_machos', cv:'cv_machos', birds:'saldo_macho', housed:'cab_macho', initial:'cab_ps_med_machos'}
-      : {viab:'viab_fem', viabStd:'std_viab_fem', weight:'ps_medio_femeas', weightStd:'ps_medio_std_femeas', uniform:'unif_femeas', uniformStd:'unif_std_femeas', cv:'cv_femeas', birds:'saldo_femea', housed:'cab_femeas', initial:'cab_ps_med_femeas'};
-  }
-  function withGad(rows, sex) {
-    const f = recriaFields(sex), result = new Map();
-    for (const [, lotRows] of group(rows, r => JSON.stringify([r.company,r.unit,r.farm,r.lot,r.house,r.raw.cab_lado]))) {
-      let previous = null;
-      for (const row of [...lotRows].sort((a,b) => a.age - b.age || a.date.localeCompare(b.date))) {
-        const weight = positive(row.raw[f.weight]), std = positive(row.raw[f.weightStd]);
-        const days = previous ? (date(row.date) - date(previous.date)) / 86400000 : null;
-        result.set(row, {gad: previous && days > 0 && weight != null ? (weight - previous.weight) / days : null,
-          gadStd: previous && days > 0 && std != null && previous.std != null ? (std - previous.std) / days : null});
-        if (weight != null) previous = {date:row.date,weight,std};
-      }
-    }
-    return result;
+      ? {viab:'viab_mac', viabStd:'std_viab_mac', weight:'ps_medio_machos', weightStd:'ps_medio_std_machos', uniform:'unif_machos', uniformStd:'unif_std_machos', cv:'cv_machos', birds:'saldo_macho', housed:'cab_macho', initial:'cab_ps_med_machos', gad:'consu_ali_gr_machos', gadStd:'consu_ali_std_machos'}
+      : {viab:'viab_fem', viabStd:'std_viab_fem', weight:'ps_medio_femeas', weightStd:'ps_medio_std_femeas', uniform:'unif_femeas', uniformStd:'unif_std_femeas', cv:'cv_femeas', birds:'saldo_femea', housed:'cab_femeas', initial:'cab_ps_med_femeas', gad:'consu_ali_gr_femeas', gadStd:'consu_ali_std_femeas'};
   }
   function recria(rows, sex, gadMap) {
     const f = recriaFields(sex), birds = r => r.raw[f.birds], housed = r => r.raw[f.housed];
@@ -122,7 +108,7 @@
       weight: weighted(rows, r => positive(r.raw[f.weight]), birds), weightStd: weighted(rows, r => positive(r.raw[f.weightStd]), birds),
       uniform: weighted(rows, r => positive(r.raw[f.uniform]), birds), uniformStd: weighted(rows, r => positive(r.raw[f.uniformStd]), birds),
       cv: weighted(rows, r => positive(r.raw[f.cv]), birds),
-      gad: weighted(rows, r => gadMap.get(r)?.gad, birds), gadStd: weighted(rows, r => gadMap.get(r)?.gadStd, birds)
+      gad: weighted(rows, r => positive(r.raw[f.gad]), birds), gadStd: weighted(rows, r => positive(r.raw[f.gadStd]), birds)
     };
     result.viabDiff = result.viab == null || result.viabStd == null ? null : result.viab - result.viabStd;
     result.weightDiff = result.weight == null || !result.weightStd ? null : (result.weight/result.weightStd-1)*100;
@@ -183,7 +169,7 @@
     const dailyLots = new Set(rows.filter(r=>/di.rio/i.test(text(r.raw.tipo_movto))).map(r=>JSON.stringify([r.company,r.unit,r.lot,r.house])));
     return rows.filter(r=>!dailyLots.has(JSON.stringify([r.company,r.unit,r.lot,r.house]))||/di.rio/i.test(text(r.raw.tipo_movto)));
   }
-  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,recriaFields,withGad,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
+  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,recriaFields,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
   else root.MatrizesData=api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

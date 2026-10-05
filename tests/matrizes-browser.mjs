@@ -16,10 +16,10 @@ if(examplePaths.length) {
   for(const table of tables)fixtures[table]=[];
   for(let i=0;i<25;i++) {
     const date=`2026-08-${String(i+1).padStart(2,'0')}`;
-    const common={id:i+1,carregado_em:'2026-10-05T10:37:00',data:date,lote:i%2?'A':'B',granja:'FAZENDA EXEMPLO',galpao:'01',linhagem:'COBB',idade:30+i%3,empresa_codigo:'2',unidade_codigo:'1'};
+    const common={id:i+1,carregado_em:'2026-10-05T10:37:00',data:date,lote:i%2?'A':'B',granja:'FAZENDA EXEMPLO',galpao:'01',linhagem:i%2?'COBB':'HUBBARD',idade:30+i%3,empresa_codigo:'2',unidade_codigo:'1'};
     fixtures.granja.push({...common,saldo_femeas:1000,ovos_produzidos:700,prod_std_pct:68,incubaveis_granja:679,cama:21,cama_std_pct:4,aprov_std_pct:97,trincado:5,sujo:4,vazado:3,duas_gemas:4,deformado:3,pequeno:2});
-    fixtures.acerto_produtor_producao.push({...common,ini_semana:date,cab_lote:common.lote,cab_granja:common.granja,cab_galpao:'01',cab_linhagem:'COBB',ida_sem:common.idade,saldo_femea:1000,producao:'70,00',producao_std:'68,00',tipo_movto:'Diário'});
-    fixtures.acerto_produtor_recria.push({...common,ini_semana:date,cab_lote:common.lote,cab_granja:common.granja,cab_galpao:'01',cab_linhagem:'COBB',ida_sem:i+1,cab_femeas:1000,saldo_femea:990,viab_fem:99,std_viab_fem:98,ps_medio_femeas:100+i*30,ps_medio_std_femeas:100+i*28,unif_femeas:85,unif_std_femeas:80,cv_femeas:6,cab_macho:100,saldo_macho:99,viab_mac:99,std_viab_mac:98,ps_medio_machos:120+i*40,ps_medio_std_machos:120+i*39,unif_machos:80,unif_std_machos:80,cv_machos:7,situacao:'Aberto'});
+    fixtures.acerto_produtor_producao.push({...common,ini_semana:date,cab_lote:common.lote,cab_granja:common.granja,cab_galpao:'01',cab_linhagem:i%2?'COBB':'HUBBARD',ida_sem:common.idade,saldo_femea:1000,producao:'70,00',producao_std:'68,00',tipo_movto:'Diário'});
+    fixtures.acerto_produtor_recria.push({...common,ini_semana:date,cab_lote:common.lote,cab_granja:common.granja,cab_galpao:'01',cab_linhagem:i%2?'COBB':'HUBBARD',ida_sem:i+1,cab_femeas:1000,saldo_femea:990,viab_fem:99,std_viab_fem:98,ps_medio_femeas:100+i*30,ps_medio_std_femeas:100+i*28,unif_femeas:85,unif_std_femeas:80,cv_femeas:6,cab_macho:100,saldo_macho:99,viab_mac:99,std_viab_mac:98,ps_medio_machos:120+i*40,ps_medio_std_machos:120+i*39,unif_machos:80,unif_std_machos:80,cv_machos:7,situacao:'Aberto'});
     fixtures.eclosao.push({...common,eclosao:date,incubacao:'2026-07-11',quantid:'1.000',nascidos:'800',descarte:'8',eclosao_std:'85,00',origem:'Próprio'});
     fixtures.embrio.push({...common,integrado:common.granja,incubados:'1.000',nascidos:'800',nao_eclodidos:'200',total_analisado:'100',qtde:'5',std:'4,00',qtde_2:'3',std_2:'4,00',qtde_3:'1',std_3:'0,50',qtde_4:'5',std_4:'4,00',qtde_7:'1',qtde_8:'1',qtde_9:'1',qtde_10:'0',std_9:'0,75',std_10:'0,00'});
     fixtures.inc.push({...common,recebimento:date,total:700,origem:'Próprio'});
@@ -55,9 +55,14 @@ try {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
     await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('histórico completo'));
     assert.equal(await page.locator('#error').isVisible(),false);
-    assert.equal(await page.locator('.mz-chart canvas').count(),await page.locator('.mz-chart').count());
+    assert.equal(await page.getByText('Regras dos indicadores',{exact:true}).count(),0);
+    assert.equal(await page.locator('#receiptsButton').count(),0);
+    assert.ok(await page.locator('#clearFilters').evaluate(el=>el.classList.contains('button-ghost-danger')));
+
+    assert.equal(await page.locator('.mz-chart svg').count(),await page.locator('.mz-chart').count());
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${file}: overflow desktop`);
     const font=await page.locator('body').evaluate(el=>getComputedStyle(el).fontFamily);assert.match(font,/Geist Variable/);
+    for(const selector of ['#clearFilters','.mz-chart-head h2','.mz-choice summary','.mz-chart svg text'])assert.match(await page.locator(selector).first().evaluate(el=>getComputedStyle(el).fontFamily),/Geist Variable/);
     await page.locator('.side-nav-rail').click();
     assert.equal(await page.locator('.side-nav-link').count(),4);
     assert.equal(await page.locator('.side-nav-link[aria-current="page"]').getAttribute('href'),file);
@@ -68,14 +73,19 @@ try {
     await page.locator('[data-expand]').first().click();assert.equal(await page.locator('.mz-chart-card.expanded').count(),1);
     await page.keyboard.press('Escape');assert.equal(await page.locator('.mz-chart-card.expanded').count(),0);
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-desktop.png')),fullPage:true});
-    if(file==='incubatorio.html') {
-      await page.locator('#receiptsButton').click();await page.waitForFunction(()=>document.querySelector('#receiptsPanel')?.textContent.includes('Incubáveis na granja'));
-      assert.equal(await page.locator('#receiptsPanel .mz-error').count(),0);
-    }
     if(file==='producao.html') {
       const before=await page.locator('#recordCount').textContent();
       await page.locator('[data-month="1"]').click();assert.match(await page.locator('#recordCount').textContent(),/^0 de /);
       await page.locator('#clearFilters').click();assert.equal((await page.locator('#recordCount').textContent()).split(' · ')[0],before.split(' · ')[0]);
+      if(!examplePaths.length){
+        await page.locator('[data-filter-choice="lineage"] summary').click();
+        await page.locator('[data-filter="lineage"][value="COBB"]').check();
+        assert.equal(await page.locator('[data-filter="lot"][value="B"]').count(),0);
+        assert.equal(await page.locator('[data-filter="lot"][value="A"]').count(),1);
+        const position=await page.evaluate(()=>{const filters=document.querySelector('.mz-filters');filters.scrollTop=filters.scrollHeight;return filters.scrollTop;});
+        await page.locator('#clearFilters').click();
+        assert.ok(Math.abs(await page.locator('.mz-filters').evaluate(el=>el.scrollTop)-position)<2,'Posição dos filtros preservada');
+      }
       await page.locator('[data-theme-toggle]').click();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
       await page.screenshot({path:path.join(screenshotDir,'producao-dark.png'),fullPage:true});
       await page.locator('[data-theme-toggle]').click();
@@ -98,7 +108,7 @@ try {
     const next=files[files.indexOf(file)+1];
     if(next){await page.locator('.side-nav-rail').click();await page.locator(`.side-nav-link[href="${next}"]`).click();await page.waitForURL(`${base}/${next}`);}
   }
-  for(const table of tables)assert.ok(requests.some(r=>r.table===table&&r.number===3),`${table}: última página não consultada`);
+  for(const table of tables.filter(table=>table!=='inc'))assert.ok(requests.some(r=>r.table===table&&r.number===3),`${table}: última página não consultada`);
   assert.deepEqual(errors,[],'Erros JavaScript no navegador');
   await context.close();
   // Missing CENTRAL session must stop before any network request.
@@ -111,10 +121,10 @@ try {
   const broken=await browser.newContext();await broken.addInitScript(()=>sessionStorage.setItem('granjabi_auth_token','test-only-token'));
   await broken.route('https://api-bi-granja.controladoriagb05.workers.dev/**',route=>{
     const url=new URL(route.request().url()),number=Number(url.searchParams.get('pagina'));
-    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({tabela:'granja',pagina:number,tamanho:10,total:25,total_paginas:3,dados:number===1?fixtures.granja.slice(0,10):[]})});
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({tabela:url.pathname.split('/').at(-1),pagina:number,tamanho:10,total:25,total_paginas:3,dados:number===1?fixtures.granja.slice(0,10):[]})});
   });
   const brokenPage=await broken.newPage();await brokenPage.goto(`${base}/producao.html`);await brokenPage.locator('#error').waitFor({state:'visible'});
   assert.match(await brokenPage.locator('#error').textContent(),/incompleta/);
   assert.equal(await brokenPage.locator('.mz-kpi strong').first().textContent(),'—');await broken.close();
-  console.log(`PASS: 4 telas desktop/mobile, menu lateral e navegação, tema, filtros, dados, ampliação, 7 tabelas com todas as páginas, sessão ausente e paginação incompleta. ${examplePaths.length?'Exemplos reais dos anexos.':'Dados sintéticos.'}`);
+  console.log(`PASS: 4 telas desktop/mobile, menu lateral e navegação, tema, filtros, dados, ampliação, 6 tabelas com todas as páginas, sessão ausente e paginação incompleta. ${examplePaths.length?'Exemplos reais dos anexos.':'Dados sintéticos.'}`);
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}

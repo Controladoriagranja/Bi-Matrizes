@@ -29,13 +29,12 @@ test('diagnóstico pondera amostra analisada e soma contaminados bacterianos e f
   near(result.infertile,100*16/384);near(result.contaminated,100*4/384);near(result.contaminatedStd,.76);
   near(result.hatch+result.unhatched,100);
 });
-test('GAD calcula intervalo de cada lote, não a diferença entre médias de lotes diferentes',()=>{
-  const records=[{ini_semana:'2026-08-03',ida_sem:5,cab_lote:'A',ps_medio_femeas:500,saldo_femea:100,cab_femeas:100},
-    {ini_semana:'2026-08-10',ida_sem:6,cab_lote:'A',ps_medio_femeas:640,saldo_femea:100,cab_femeas:100},
-    {ini_semana:'2026-08-10',ida_sem:6,cab_lote:'B',ps_medio_femeas:1000,saldo_femea:900,cab_femeas:900}];
-  const rows=D.prepare('acerto_produtor_recria',records),gad=D.withGad(rows,'femeas');
-  near(gad.get(rows[1]).gad,20);assert.equal(gad.get(rows[2]).gad,null);
-  near(D.recria(rows.filter(r=>r.age===6),'femeas',gad).gad,20);
+test('GAD é consumo de ração por ave por dia, ponderado pelo saldo e separado por sexo',()=>{
+  const rows=[{raw:{saldo_femea:100,consu_ali_gr_femeas:40,consu_ali_std_femeas:38,saldo_macho:10,consu_ali_gr_machos:50,consu_ali_std_machos:48}},
+    {raw:{saldo_femea:300,consu_ali_gr_femeas:60,consu_ali_std_femeas:58}}];
+  near(D.recria(rows,'femeas').gad,55);near(D.recria(rows,'femeas').gadStd,53);
+  near(D.recria(rows,'machos').gad,50);near(D.recria(rows,'machos').gadStd,48);
+  assert.equal(D.recria([{raw:{saldo_femea:100,ps_medio_femeas:500}}],'femeas').gad,null);
 });
 test('zero em pesagem e uniformidade é ausência de medição, não desempenho zero',()=>{
   const result=D.recria([{raw:{cab_femeas:100,saldo_femea:99,viab_fem:99,std_viab_fem:98,ps_medio_femeas:0,unif_femeas:0,cv_femeas:0}}],'femeas',new Map());
