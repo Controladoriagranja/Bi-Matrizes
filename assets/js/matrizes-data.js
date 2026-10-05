@@ -86,6 +86,15 @@
     }
     return [...map.values()];
   }
+  function previousTwoMonths(reference=new Date()) {
+    const end=new Date(Date.UTC(reference.getFullYear(),reference.getMonth(),0));
+    const start=new Date(Date.UTC(reference.getFullYear(),reference.getMonth()-2,1));
+    return {start:iso(start),end:iso(end)};
+  }
+  function chartGroups(rows,key,limit=8) {
+    const groups=group(rows,row=>key==='monthPeriod'?row.date.slice(0,7):row[key]);
+    return limit==null?groups:groups.slice(-limit);
+  }
   function group(rows, getter) {
     const groups = new Map();
     rows.forEach(row => {
@@ -169,7 +178,7 @@
     const dailyLots = new Set(rows.filter(r=>/di.rio/i.test(text(r.raw.tipo_movto))).map(r=>JSON.stringify([r.company,r.unit,r.lot,r.house])));
     return rows.filter(r=>!dailyLots.has(JSON.stringify([r.company,r.unit,r.lot,r.house]))||/di.rio/i.test(text(r.raw.tipo_movto)));
   }
-  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,recriaFields,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
+  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,previousTwoMonths,chartGroups,recriaFields,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
   else root.MatrizesData=api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

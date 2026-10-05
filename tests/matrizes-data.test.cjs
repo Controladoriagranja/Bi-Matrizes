@@ -68,3 +68,14 @@ test('lote base e galpão permitem filtrar produção e acerto com o mesmo conte
   assert.equal(acerto.lot,granja.lot);assert.equal(acerto.house,granja.house);
   assert.equal(D.normalize('eclosao',{eclosao:'01/08/26',lote:'PL3306-26'}).lot,'PL3306-26');
 });
+
+test('período inicial usa os dois meses fechados anteriores, inclusive na virada do ano',()=>{
+  assert.deepEqual(D.previousTwoMonths(new Date(2026,9,5)),{start:'2026-08-01',end:'2026-09-30'});
+  assert.deepEqual(D.previousTwoMonths(new Date(2026,0,5)),{start:'2025-11-01',end:'2025-12-31'});
+});
+test('gráficos semanais preservam semanas reais e limitam aos oito grupos finais',()=>{
+  const rows=Array.from({length:12},(_,i)=>({week:`2026-S${String(i+30).padStart(2,'0')}`}));
+  const groups=D.chartGroups(rows,'week');assert.equal(groups.length,8);
+  assert.equal(D.chartGroups(rows,'week',null).length,12);
+  assert.equal(groups[0][0],'2026-S34');assert.equal(groups.at(-1)[0],'2026-S41');
+});

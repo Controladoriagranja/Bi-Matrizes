@@ -7,8 +7,10 @@
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const filterLabels={year:'Ano',week:'Semana',farm:'Fazenda',lot:'Lote',house:'Galpão',lineage:'Linhagem',age:'Idade (semanas)',origin:'Origem',stage:'Estágio da incubadora',status:'Situação atual'};
-  const state={rows:[],extra:[],charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false};
-  const storageKey=`bi-matrizes-filtros-${page.module}`;
+  const state={rows:[],extra:[],charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8};
+  const defaultPeriod=D.previousTwoMonths();
+  state.start=defaultPeriod.start;state.end=defaultPeriod.end;
+  const storageKey=`bi-matrizes-filtros-v3-${page.module}`;
   try {
     const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null');
     if(saved) {
@@ -58,7 +60,8 @@
   const groupValue=(row,key)=>key==='monthPeriod'?row.date.slice(0,7):row[key];
   function points(rows,spec) {
     const key=spec.group||page.group;
-    return D.group(rows,r=>groupValue(r,key)).map(([value,items])=>({label:groupLabel(value,key),...calc(items,spec.calc||page.calc)}));
+    const weekly=key==='week'||pageId==='recria'&&key==='age';
+    return D.chartGroups(rows,key,weekly?state.weekLimit:null).map(([value,items])=>({label:groupLabel(value,key),...calc(items,spec.calc||page.calc)}));
   }
   function renderShell() {
     $('matrizesApp').innerHTML=`
@@ -74,6 +77,7 @@
           <div id="error" class="mz-notice mz-error hidden" role="alert"></div>
           <div id="notice" class="mz-notice hidden"></div>
           <section class="mz-kpis" id="kpis" aria-label="Indicadores do período"></section>
+          <div class="mz-week-controls"><span id="weekLimitCaption">Até 8 Semanas por Gráfico</span><button id="toggleWeeks" class="mz-button" aria-pressed="false">Mostrar Todas as Semanas</button></div>
           <section class="mz-charts" aria-label="Gráficos">${page.charts.map((spec,index)=>`${spec.section&&spec.section!==page.charts[index-1]?.section?`<h2 class="mz-section-title">${spec.section}</h2>`:''}
             <article class="mz-chart-card ${spec.wide?'wide':''}" id="card-${spec.id}"><div class="mz-chart-head"><div><h2>${spec.title}</h2><p id="caption-${spec.id}">${spec.axis} · ${spec.unit||'Percentual'}</p></div><div class="mz-chart-actions"><button type="button" data-table="${spec.id}" aria-expanded="false" aria-controls="table-${spec.id}">Dados</button><button type="button" data-expand="${spec.id}" aria-label="Ampliar ${spec.title}" aria-expanded="false">⤢</button></div></div><div id="chart-${spec.id}" class="mz-chart" role="img" aria-label="${spec.title}. Os valores estão disponíveis no botão Dados."></div><div id="table-${spec.id}" class="mz-table-wrap hidden"></div></article>`).join('')}</section>
 
@@ -82,6 +86,13 @@
       </div>`;
     if(window.ThemeManager)document.querySelector('[data-theme-icon]').textContent=ThemeManager.get()==='dark'?'☀':'☾';
     $('refresh').addEventListener('click',load);
+    $('toggleWeeks').addEventListener('click',()=>{
+      state.weekLimit=state.weekLimit==null?8:null;
+      $('toggleWeeks').textContent=state.weekLimit==null?'Mostrar Somente 8 Semanas':'Mostrar Todas as Semanas';
+      $('toggleWeeks').setAttribute('aria-pressed',String(state.weekLimit==null));
+      $('weekLimitCaption').textContent=state.weekLimit==null?'Todas as Semanas do Período Selecionado':'Até 8 Semanas por Gráfico';
+      renderCharts();
+    });
     $('toggleFilters').addEventListener('click',()=>{
       const collapsed=$('filterFields').classList.toggle('hidden-mobile');
       $('toggleFilters').setAttribute('aria-expanded',String(!collapsed));
@@ -145,7 +156,7 @@
       const set=selected(input.dataset.filter);input.checked?set.add(input.value):set.delete(input.value);reconcileFilters(input.dataset.filter);saveFilters();render();
     }));
     document.querySelectorAll('[data-month]').forEach(button=>button.addEventListener('click',()=>{
-      const set=selected('month');set.has(button.dataset.month)?set.delete(button.dataset.month):set.add(button.dataset.month);saveFilters();render();
+      const set=selected('month');set.has(button.dataset.month)?set.delete(button.dataset.month):set.add(button.dataset.month);state.start='';state.end='';selected('week').clear();saveFilters();render();
     }));
     document.querySelectorAll('[data-sex]').forEach(button=>button.addEventListener('click',()=>{state.sex=button.dataset.sex;saveFilters();render();}));
     document.querySelectorAll('[data-search]').forEach(input=>input.addEventListener('input',()=>{
@@ -156,7 +167,7 @@
     scrolls.forEach(({el,key,top})=>{const target=el.isConnected?el:key?document.querySelector(`[data-filter-choice="${key}"] .mz-options`):null;if(target)target.scrollTop=top;});
     $('startDate').addEventListener('change',()=>{state.start=$('startDate').value;saveFilters();render();});
     $('endDate').addEventListener('change',()=>{state.end=$('endDate').value;saveFilters();render();});
-    $('clearFilters').addEventListener('click',()=>{state.filters={};state.start='';state.end='';saveFilters();render();});
+    $('clearFilters').addEventListener('click',()=>{state.filters={};state.start=defaultPeriod.start;state.end=defaultPeriod.end;saveFilters();render();});
   }
   function renderKpis(rows) {
     let data,context='Consolidado do período';
@@ -204,6 +215,7 @@
     page.charts.forEach(spec=>{
       const rows=filtered(spec.source==='extra'?state.extra:state.rows,spec.source==='extra',spec.allPeriods);
       renderChart(spec,points(rows,spec));
+      if((spec.group||page.group)==='week'||pageId==='recria')$(`caption-${spec.id}`).textContent=`${spec.axis} · ${spec.unit||'%'} · ${state.weekLimit==null?'Todas as semanas':'Até 8 semanas'} do período selecionado`;
       if(spec.allPeriods)$(`caption-${spec.id}`).textContent=`${spec.axis} · ${state.complete?'Histórico completo':'Histórico parcial em carregamento'}, independente do período selecionado`;
       if(spec.source==='extra'){
         const ignored=[...unavailableFilters(state.extra)].filter(key=>selected(key).size).map(key=>filterLabels[key]);
@@ -269,12 +281,8 @@
       const progress=(key,table)=>(rows,count,total)=>{
         if(state.controller!==controller||controller.signal.aborted)return;
         state[key]=key==='extra'?D.preferDaily(rows):rows;
-        if(!state.hasSavedFilters){
-          const latest=[...state.rows,...state.extra].map(row=>row.date).sort().at(-1);
-          if(latest){const date=D.date(latest);date.setUTCDate(1);date.setUTCMonth(date.getUTCMonth()-1);state.start=D.iso(date);state.end=latest;}
-        }
         state.loaded=true;
-        $('loadStatus').textContent=`Prévia parcial dos últimos dois meses · ${table}: ${count.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} · carregando histórico`;
+        $('loadStatus').textContent=`Prévia parcial do período selecionado · ${table}: ${count.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} · carregando histórico`;
         render();
       };
       const tasks=[loadTable(page.table,controller.signal,progress('rows',page.table))];

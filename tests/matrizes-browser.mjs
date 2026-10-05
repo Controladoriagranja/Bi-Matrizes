@@ -15,7 +15,7 @@ if(examplePaths.length) {
 } else {
   for(const table of tables)fixtures[table]=[];
   for(let i=0;i<25;i++) {
-    const date=`2026-08-${String(i+1).padStart(2,'0')}`;
+    const date=i===24?'2026-10-01':i>=20?`2026-09-${String(i-19).padStart(2,'0')}`:`2026-08-${String(i+1).padStart(2,'0')}`;
     const common={id:i+1,carregado_em:'2026-10-05T10:37:00',data:date,lote:i%2?'A':'B',granja:'FAZENDA EXEMPLO',galpao:'01',linhagem:i%2?'COBB':'HUBBARD',idade:30+i%3,empresa_codigo:'2',unidade_codigo:'1'};
     fixtures.granja.push({...common,saldo_femeas:1000,ovos_produzidos:700,prod_std_pct:68,incubaveis_granja:679,cama:21,cama_std_pct:4,aprov_std_pct:97,trincado:5,sujo:4,vazado:3,duas_gemas:4,deformado:3,pequeno:2});
     fixtures.acerto_produtor_producao.push({...common,ini_semana:date,cab_lote:common.lote,cab_granja:common.granja,cab_galpao:'01',cab_linhagem:i%2?'COBB':'HUBBARD',ida_sem:common.idade,saldo_femea:1000,producao:'70,00',producao_std:'68,00',tipo_movto:'Diário'});
@@ -55,12 +55,15 @@ try {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
     await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('histórico completo'));
     assert.equal(await page.locator('#error').isVisible(),false);
+    for(const id of file==='index.html'?['viabilidade','uniformidade','peso','gad']:file==='producao.html'?['producao','aproveitamento','cama','perdas']:file==='embrio.html'?['nao-eclodidos','infertilidade','contaminados','trincados','mortalidade-inicial','mortalidade-media','mortalidade-final']:['eclosao','descarte','etaria','incubacao','estoque'])assert.ok(await page.locator(`#table-${id} tbody tr`).count()<=8);
     assert.equal(await page.getByText('Regras dos indicadores',{exact:true}).count(),0);
     assert.equal(await page.locator('#receiptsButton').count(),0);
     assert.ok(await page.locator('#clearFilters').evaluate(el=>el.classList.contains('button-ghost-danger')));
 
     assert.equal(await page.locator('.mz-chart svg').count(),await page.locator('.mz-chart').count());
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${file}: overflow desktop`);
+    await page.locator('#toggleWeeks').click();assert.equal(await page.locator('#toggleWeeks').getAttribute('aria-pressed'),'true');
+    await page.locator('#toggleWeeks').click();assert.equal(await page.locator('#toggleWeeks').getAttribute('aria-pressed'),'false');
     const font=await page.locator('body').evaluate(el=>getComputedStyle(el).fontFamily);assert.match(font,/Geist Variable/);
     for(const selector of ['#clearFilters','.mz-chart-head h2','.mz-choice summary','.mz-chart svg text'])assert.match(await page.locator(selector).first().evaluate(el=>getComputedStyle(el).fontFamily),/Geist Variable/);
     await page.locator('.side-nav-rail').click();
@@ -75,6 +78,17 @@ try {
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-desktop.png')),fullPage:true});
     if(file==='producao.html') {
       const before=await page.locator('#recordCount').textContent();
+      assert.equal(await page.locator('#startDate').inputValue(),'2026-08-01');
+      assert.equal(await page.locator('#endDate').inputValue(),'2026-09-30');
+      if(!examplePaths.length){
+        await page.locator('[data-month="8"]').click();
+        assert.match(await page.locator('#recordCount').textContent(),/^20 de /);
+        assert.equal(await page.locator('#startDate').inputValue(),'');
+        await page.locator('[data-month="9"]').click();
+        assert.match(await page.locator('#recordCount').textContent(),/^24 de /);
+        await page.locator('#clearFilters').click();
+      }
+
       await page.locator('[data-month="1"]').click();assert.match(await page.locator('#recordCount').textContent(),/^0 de /);
       await page.locator('#clearFilters').click();assert.equal((await page.locator('#recordCount').textContent()).split(' · ')[0],before.split(' · ')[0]);
       if(!examplePaths.length){

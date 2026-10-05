@@ -101,3 +101,5 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 
 .mz-filter .button-ghost-danger { width:100%; }
 .matrizes-page, .matrizes-page * { font-family:"Geist Variable","Geist",system-ui,sans-serif; }
+
+.mz-week-controls { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin:18px 0; font-size:13px; color:var(--muted-foreground); }

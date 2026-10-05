@@ -63,6 +63,14 @@ Validação local: `node --test tests/matrizes-data.test.cjs`; verificação de 
 
 ## Carregamento e filtros
 
-O frontend consulta a primeira e a última página para apresentar uma prévia parcial com o intervalo dos dois meses mais recentes encontrados. As demais páginas são consultadas em grupos de três, em segundo plano. A mensagem de histórico completo só aparece após validar todos os registros. A rota existente aceita apenas paginação, sem filtros de data: não é possível garantir que os dois meses estejam completos antes de terminar a consulta. Filtrar datas e excluir 2025 no servidor exigem suporte adicional no backend; por enquanto 2025 é removido dos indicadores, das opções e das curvas de Produção no frontend.
+O frontend consulta a primeira e a última página para apresentar uma prévia parcial com o intervalo dos dois meses fechados anteriores ao mês corrente. As demais páginas são consultadas em grupos de três, em segundo plano. A mensagem de histórico completo só aparece após validar todos os registros. A rota existente aceita apenas paginação, sem filtros de data: não é possível garantir que os dois meses estejam completos antes de terminar a consulta. Filtrar datas e excluir 2025 no servidor exigem suporte adicional no backend; por enquanto 2025 é removido dos indicadores, das opções e das curvas de Produção no frontend.
 
 As opções dos filtros respeitam os demais filtros ativos. Gráficos usam SVG para preservar nitidez na ampliação. GAD: referência técnica https://pt.engormix.com/avicultura/manejo-pintinhos/manejo-recria-matrizes-com_a38190/.
+
+## Período inicial e seleção de meses
+
+O período inicial usa os dois meses fechados anteriores ao mês corrente (em outubro de 2026: 01/08/2026 a 30/09/2026). Limpar filtros restaura esse período. Selecionar meses remove a restrição das datas e das semanas anteriores, mantendo os demais filtros de negócio. A sessão usa uma nova versão para descartar o intervalo automático antigo.
+
+Gráficos agrupados por semana e os gráficos de Recria por semana de vida usam os oito últimos grupos reais do período filtrado. Não inventam valores quando há menos de oito semanas. Gráficos diários, mensais, anuais e curvas por idade mantêm sua granularidade própria. As funções de período e agrupamento estão centralizadas em matrizes-data.js.
+
+O botão Mostrar Todas as Semanas retira o limite de oito grupos sem alterar o período nem os filtros de negócio; o mesmo botão permite voltar ao limite.
