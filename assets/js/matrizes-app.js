@@ -60,7 +60,7 @@
   const groupValue=(row,key)=>key==='monthPeriod'?row.date.slice(0,7):row[key];
   function points(rows,spec) {
     const key=spec.group||page.group;
-    const weekly=key==='week'||pageId==='recria'&&key==='age';
+    const weekly=key==='week';
     return D.chartGroups(rows,key,weekly?state.weekLimit:null).map(([value,items])=>({label:groupLabel(value,key),...calc(items,spec.calc||page.calc)}));
   }
   function renderShell() {
@@ -77,7 +77,7 @@
           <div id="error" class="mz-notice mz-error hidden" role="alert"></div>
           <div id="notice" class="mz-notice hidden"></div>
           <section class="mz-kpis" id="kpis" aria-label="Indicadores do período"></section>
-          <div class="mz-week-controls"><span id="weekLimitCaption">Até 8 Semanas por Gráfico</span><button id="toggleWeeks" class="mz-button" aria-pressed="false">Mostrar Todas as Semanas</button></div>
+          <div class="mz-week-controls" ${pageId==='recria'?'hidden':''}><span id="weekLimitCaption">Até 8 Semanas por Gráfico</span><button id="toggleWeeks" class="mz-button" aria-pressed="false">Mostrar Todas as Semanas</button></div>
           <section class="mz-charts" aria-label="Gráficos">${page.charts.map((spec,index)=>`${spec.section&&spec.section!==page.charts[index-1]?.section?`<h2 class="mz-section-title">${spec.section}</h2>`:''}
             <article class="mz-chart-card ${spec.wide?'wide':''}" id="card-${spec.id}"><div class="mz-chart-head"><div><h2>${spec.title}</h2><p id="caption-${spec.id}">${spec.axis} · ${spec.unit||'Percentual'}</p></div><div class="mz-chart-actions"><button type="button" data-table="${spec.id}" aria-expanded="false" aria-controls="table-${spec.id}">Dados</button><button type="button" data-expand="${spec.id}" aria-label="Ampliar ${spec.title}" aria-expanded="false">⤢</button></div></div><div id="chart-${spec.id}" class="mz-chart" role="img" aria-label="${spec.title}. Os valores estão disponíveis no botão Dados."></div><div id="table-${spec.id}" class="mz-table-wrap hidden"></div></article>`).join('')}</section>
 
@@ -215,7 +215,7 @@
     page.charts.forEach(spec=>{
       const rows=filtered(spec.source==='extra'?state.extra:state.rows,spec.source==='extra',spec.allPeriods);
       renderChart(spec,points(rows,spec));
-      if((spec.group||page.group)==='week'||pageId==='recria')$(`caption-${spec.id}`).textContent=`${spec.axis} · ${spec.unit||'%'} · ${state.weekLimit==null?'Todas as semanas':'Até 8 semanas'} do período selecionado`;
+      if((spec.group||page.group)==='week')$(`caption-${spec.id}`).textContent=`${spec.axis} · ${spec.unit||'%'} · ${state.weekLimit==null?'Todas as semanas':'Até 8 semanas'} do período selecionado`;
       if(spec.allPeriods)$(`caption-${spec.id}`).textContent=`${spec.axis} · ${state.complete?'Histórico completo':'Histórico parcial em carregamento'}, independente do período selecionado`;
       if(spec.source==='extra'){
         const ignored=[...unavailableFilters(state.extra)].filter(key=>selected(key).size).map(key=>filterLabels[key]);

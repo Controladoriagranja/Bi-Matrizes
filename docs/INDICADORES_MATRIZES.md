@@ -71,6 +71,6 @@ As opções dos filtros respeitam os demais filtros ativos. Gráficos usam SVG p
 
 O período inicial usa os dois meses fechados anteriores ao mês corrente (em outubro de 2026: 01/08/2026 a 30/09/2026). Limpar filtros restaura esse período. Selecionar meses remove a restrição das datas e das semanas anteriores, mantendo os demais filtros de negócio. A sessão usa uma nova versão para descartar o intervalo automático antigo.
 
-Gráficos agrupados por semana e os gráficos de Recria por semana de vida usam os oito últimos grupos reais do período filtrado. Não inventam valores quando há menos de oito semanas. Gráficos diários, mensais, anuais e curvas por idade mantêm sua granularidade própria. As funções de período e agrupamento estão centralizadas em matrizes-data.js.
+Gráficos agrupados por semana do calendário usam os oito últimos grupos reais do período filtrado. Recria mantém todas as semanas de vida disponíveis no período filtrado, sem limite de oito, conforme a planilha de referência. Não inventam valores quando há menos de oito semanas. Gráficos diários, mensais, anuais e curvas por idade mantêm sua granularidade própria. As funções de período e agrupamento estão centralizadas em matrizes-data.js.
 
 O botão Mostrar Todas as Semanas retira o limite de oito grupos sem alterar o período nem os filtros de negócio; o mesmo botão permite voltar ao limite.

@@ -55,15 +55,17 @@ try {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
     await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('histórico completo'));
     assert.equal(await page.locator('#error').isVisible(),false);
-    for(const id of file==='index.html'?['viabilidade','uniformidade','peso','gad']:file==='producao.html'?['producao','aproveitamento','cama','perdas']:file==='embrio.html'?['nao-eclodidos','infertilidade','contaminados','trincados','mortalidade-inicial','mortalidade-media','mortalidade-final']:['eclosao','descarte','etaria','incubacao','estoque'])assert.ok(await page.locator(`#table-${id} tbody tr`).count()<=8);
+    for(const id of file==='index.html'?[]:file==='producao.html'?['producao','aproveitamento','cama','perdas']:file==='embrio.html'?['nao-eclodidos','infertilidade','contaminados','trincados','mortalidade-inicial','mortalidade-media','mortalidade-final']:['eclosao','descarte','etaria','incubacao','estoque'])assert.ok(await page.locator(`#table-${id} tbody tr`).count()<=8);
     assert.equal(await page.getByText('Regras dos indicadores',{exact:true}).count(),0);
     assert.equal(await page.locator('#receiptsButton').count(),0);
     assert.ok(await page.locator('#clearFilters').evaluate(el=>el.classList.contains('button-ghost-danger')));
 
     assert.equal(await page.locator('.mz-chart svg').count(),await page.locator('.mz-chart').count());
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${file}: overflow desktop`);
+    if(file!=='index.html') {
     await page.locator('#toggleWeeks').click();assert.equal(await page.locator('#toggleWeeks').getAttribute('aria-pressed'),'true');
     await page.locator('#toggleWeeks').click();assert.equal(await page.locator('#toggleWeeks').getAttribute('aria-pressed'),'false');
+    } else assert.equal(await page.locator('#toggleWeeks').isVisible(),false);
     const font=await page.locator('body').evaluate(el=>getComputedStyle(el).fontFamily);assert.match(font,/Geist Variable/);
     for(const selector of ['#clearFilters','.mz-chart-head h2','.mz-choice summary','.mz-chart svg text'])assert.match(await page.locator(selector).first().evaluate(el=>getComputedStyle(el).fontFamily),/Geist Variable/);
     await page.locator('.side-nav-rail').click();
