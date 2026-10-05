@@ -1,130 +1,53 @@
-# BI Zootécnico — GitHub + Cloudflare + PostgreSQL
+﻿# BI Matrizes e Incubatório
 
-Base preparada em 01/10/2026 para evoluir o BI Zootécnico mantendo o frontend estático no GitHub Pages e os dados fora do GitHub.
+Portal HTML/CSS/JavaScript com quatro telas baseadas na reunião semanal de Matrizes e Incubatório. Os sete prints de gráficos são organizados em seções dessas telas. Fonte, variáveis de cores, tema e menu lateral herdados do projeto irmão `bi-zootecnico`.
 
-## Arquitetura
+| Tela | Arquivo | Fonte principal |
+| --- | --- | --- |
+| Recria | index.html | acerto_produtor_recria |
+| Produção: resumo e curvas | producao.html | granja + acerto_produtor_producao |
+| Incubatório: eclosão, idade, histórico, incubação e estoque | incubatorio.html | eclosao + incubacao; comparação complementar com granja + inc |
+| Embriodiagnóstico | embrio.html | embrio |
 
-```text
-GitHub Pages (HTML/CSS/JS público)
-        |
-        v
-Cloudflare Worker
-https://api-bi-granja.controladoriagb05.workers.dev
-        |
-        v
-API Zootécnico interna (FastAPI, somente leitura)
-        |
-        v
-PostgreSQL
-```
+## Dados e autenticação
 
-O navegador **não lê Parquet**, não recebe senha do PostgreSQL e não possui caminho de rede da empresa.
+CENTRAL → login → token Bearer da sessão → Cloudflare Worker → validação da sessão → Basic interno → FastAPI → PostgreSQL.
 
-## O que já está preparado
+O frontend usa `https://api-bi-granja.controladoriagb05.workers.dev` e lê o token em `sessionStorage.getItem("granjabi_auth_token")`. A URL da FastAPI interna não é chamada pelo navegador. Não colocar usuário, senha ou token fixo no código.
 
-- `index.html`: frontend do projeto **desenvolvimento local**, agora apontando para a API da Cloudflare.
-- `detalhes.html`: usa `/api/bi/zootecnico/detalhes`.
-- `formulas.html`: catálogo de fórmulas fica estático no frontend e não exige endpoint extra.
-- `assets/js/config.js`: URL do Worker e mapa central de endpoints.
-- `assets/js/api.js`: cliente HTTP com suporte ao token do Portal BI em `sessionStorage`.
-- `api/`: cópia pública e sem credenciais do backend necessário para a integração.
-- `docs/TABELAS_POSTGRESQL.md`: estrutura de tabelas fornecida para esta etapa.
-- `docs/tabelas-postgresql.json`: a mesma estrutura em JSON para facilitar automações futuras.
-- `referencia-frontend-local/`: telas de Lotes, Histórico e Diferença de Aves preservadas como referência para a próxima etapa.
+As rotas `/api/portal/matrizes/dados/{tabela}` seguem o contrato dos exemplos fornecidos: `dados`, `tabela`, `total`, `pagina`, `tamanho` e `total_paginas`. O cliente percorre todas as páginas e recusa uma consulta incompleta. Uma sessão válida da CENTRAL deve estar disponível na origem do frontend, conforme o fluxo atual do Portal.
 
-## Endpoints já previstos no frontend
+## Interface e cálculos
 
-### Desempenho
+- Menu lateral com o mesmo componente do bi-zootecnico, alternando entre Recria, Produção de ovos, Incubatório e Embriodiagnóstico.
+- Filtros de ano, mês, semana, período e dimensões disponíveis em cada fonte; contexto compartilhado dentro do módulo.
+- Tema claro/escuro com a mesma chave `bi-zootecnico-theme`.
+- Gráficos ECharts locais, ampliação e tabelas dos valores agregados.
+- Layout para desktop e celular; indicadores indisponíveis aparecem como `—`.
 
-- `/api/bi/zootecnico/filtros`
-- `/api/bi/zootecnico/resumo`
-- `/api/bi/zootecnico/detalhes`
+Consulte [as regras e pendências dos indicadores](docs/INDICADORES_MATRIZES.md) e [o mapeamento dos prints para o Excel](docs/MAPEAMENTO_MATRIZES.md). A ponderação proposta ainda aguarda a conferência do usuário com as medidas do Excel. Metas sem fonte e média de estoque sem distribuição de ovos permanecem indisponíveis.
 
-### Próximas telas
+## Desenvolvimento e verificação
 
-- `/api/bi/lotes-abertos/filtros`
-- `/api/bi/lotes-abertos/resumo`
-- `/api/bi/lotes-abertos/detalhes`
-- `/api/bi/historico-fechados/filtros`
-- `/api/bi/historico-fechados/resumo`
-- `/api/bi/historico-fechados/detalhes`
-- `/api/bi/rxp/filtros`
-- `/api/bi/rxp/resumo`
-- `/api/bi/rxp/detalhes`
-
-Essas rotas já estão declaradas em `api/bi_generic/registry.py`. As telas correspondentes ainda não foram ativadas no menu porque os indicadores e o layout final serão definidos na próxima etapa.
-
-## Publicar o frontend no GitHub Pages
-
-1. Crie um repositório público no GitHub.
-2. Envie o conteúdo desta pasta para a branch `main`.
-3. No GitHub, abra **Settings → Pages**.
-4. Em **Build and deployment**, escolha **Deploy from a branch**.
-5. Selecione `main` e `/ (root)`.
-6. Salve.
-
-Não envie `.env`, senhas, dumps, Parquets ou arquivos com dados da empresa.
-
-## Configuração do Worker
-
-A URL usada pela cópia `api db` fornecida é:
+O projeto é estático; não há etapa de instalação para executar o frontend. Para servir a raiz localmente, por exemplo:
 
 ```text
-https://api-bi-granja.controladoriagb05.workers.dev
+python -m http.server 8080 --bind 127.0.0.1
 ```
 
-Ela está em `assets/js/config.js`. Se mudar no futuro, altere somente esse arquivo.
-
-O frontend usa por padrão o token de sessão do Portal BI salvo como `granjabi_auth_token`. Nenhum token é salvo no repositório.
-
-O código-fonte do Worker não estava nos arquivos recebidos nesta etapa; este projeto mantém o contrato do Worker já usado pelo pacote **api db**.
-
-## API interna
-
-A pasta `api/` é a cópia que deve ser comparada com o serviço real antes do deploy.
-
-Variáveis necessárias no servidor:
+Sem uma sessão da CENTRAL nessa origem, a tela informa que o login é necessário. Nenhum dado de teste é carregado pelo site.
 
 ```text
-PGHOST
-PGDATABASE
-PGUSER
-PGPASSWORD
-API_BASIC_USERS
-CORS_ORIGINS
+node --test tests/matrizes-data.test.cjs
+node tests/matrizes-browser.mjs
 ```
 
-Use `api/.env.example` apenas como modelo. O `.env` real deve permanecer fora do Git.
+O teste de navegador requer Playwright e Chromium/Chrome. Opcionalmente, `PLAYWRIGHT_MODULE` aponta para a instalação do Playwright e `CHROME_EXECUTABLE` para o navegador. O teste usa uma sessão e API simuladas exclusivamente em um navegador isolado. Para verificar os sete exemplos fornecidos, passar os sete caminhos de JSON ao teste, na ordem: produção, recria, eclosao, embrio, granja, inc, incubacao. Os dados dos anexos não são copiados para o frontend.
 
-### Ajuste feito no catálogo de Matrizes
+Capturas de QA ficam em `artifacts/qa/`, ignoradas pelo Git porque podem conter dados dos exemplos. `scripts/build-pages.mjs` regenera os quatro HTMLs e redireciona os antigos endereços das seções para as telas correspondentes.
 
-O módulo Matrizes pode usar estes esquemas:
+## Publicação
 
-- `matrizes`
-- `bd_classif`
-- `bd_aproveit`
-- `bd_incubacao`
-- `bd_eclosao`
-- `bd_embrio`
+Publicar a raiz do repositório, com `assets/` como pasta de recursos, conforme [README_DEPLOY.md](README_DEPLOY.md). A implementação desta etapa não foi publicada. Validar a sessão e as consultas completas no Worker real antes de considerar os números reconciliados em produção.
 
-A rota `/api/portal/matrizes/dados/{tabela}` agora procura a tabela no esquema correto. Isso evita o problema da versão anterior, que listava tabelas auxiliares mas tentava consultá-las como se todas fossem `matrizes.<tabela>`.
-
-Também foi adicionado:
-
-```text
-GET /api/portal/catalogo-esperado
-```
-
-Essa rota somente verifica se as tabelas previstas estão presentes; não cria e não altera estrutura.
-
-## Próxima etapa
-
-Quando forem definidos os dados e o visual de cada tela, a evolução recomendada é:
-
-1. escolher as tabelas/colunas que entram em cada indicador;
-2. definir regras de negócio e fórmulas;
-3. acrescentar ou ajustar a configuração no `api/bi_generic/registry.py`;
-4. fazer a API devolver somente o agregado necessário;
-5. ligar o resultado ao frontend;
-6. validar os números contra PostgreSQL/Excel/Power BI antes de publicar.
-
+Os arquivos antigos de detalhes, diagnóstico e fórmulas, `referencia-frontend-local/` e cópias antigas em `assets/` foram preservados como referência e não integram a navegação atual.

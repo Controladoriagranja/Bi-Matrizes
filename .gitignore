@@ -32,3 +32,6 @@ Thumbs.db
 *.log
 *.tmp
 *.bak
+
+# Capturas locais de verificação (podem conter exemplos internos)
+/artifacts/

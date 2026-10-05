@@ -21,6 +21,7 @@ const APP_CONFIG = {
         health: "/api/zootecnico/health",
         portalModulos: "/api/portal/modulos",
         recriaDados: "/api/portal/matrizes/dados/acerto_produtor_recria",
+        matrizesDados: "/api/portal/matrizes/dados/",
 
         // Dashboard principal
         filtros: "/api/bi/zootecnico/filtros",
