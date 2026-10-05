@@ -79,3 +79,11 @@ test('gráficos semanais preservam semanas reais e limitam aos oito grupos finai
   assert.equal(D.chartGroups(rows,'week',null).length,12);
   assert.equal(groups[0][0],'2026-S34');assert.equal(groups.at(-1)[0],'2026-S41');
 });
+
+test('Recria sempre apresenta domínio de 1 a 22, sem inventar medições ausentes',()=>{
+  const row={age:15,raw:{saldo_femea:100,ps_medio_femeas:1792}};
+  const groups=D.lifeWeekGroups([row,{age:23,raw:{}}]);
+  assert.equal(groups.length,22);assert.equal(groups[0][0],1);assert.equal(groups[21][0],22);
+  assert.equal(groups[14][1][0],row);assert.equal(groups[0][1].length,0);
+  assert.equal(D.recria(groups[0][1],'femeas').weight,null);
+});

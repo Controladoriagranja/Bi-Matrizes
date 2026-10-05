@@ -55,6 +55,12 @@ try {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
     await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('histórico completo'));
     assert.equal(await page.locator('#error').isVisible(),false);
+    if(file==='index.html')for(const id of ['viabilidade','uniformidade','peso','gad']){
+      const rows=page.locator(`#table-${id} tbody tr`);assert.equal(await rows.count(),22);
+      assert.equal(await rows.first().locator('th').textContent(),'1');assert.equal(await rows.last().locator('th').textContent(),'22');
+      assert.ok(!(await page.locator(`#caption-${id}`).textContent()).includes('8 semanas'));
+    }
+
     for(const id of file==='index.html'?[]:file==='producao.html'?['producao','aproveitamento','cama','perdas']:file==='embrio.html'?['nao-eclodidos','infertilidade','contaminados','trincados','mortalidade-inicial','mortalidade-media','mortalidade-final']:['eclosao','descarte','etaria','incubacao','estoque'])assert.ok(await page.locator(`#table-${id} tbody tr`).count()<=8);
     assert.equal(await page.getByText('Regras dos indicadores',{exact:true}).count(),0);
     assert.equal(await page.locator('#receiptsButton').count(),0);

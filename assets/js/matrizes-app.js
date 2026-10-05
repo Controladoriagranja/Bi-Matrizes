@@ -61,7 +61,8 @@
   function points(rows,spec) {
     const key=spec.group||page.group;
     const weekly=key==='week';
-    return D.chartGroups(rows,key,weekly?state.weekLimit:null).map(([value,items])=>({label:groupLabel(value,key),...calc(items,spec.calc||page.calc)}));
+    const groups=spec.lifeWeeks?D.lifeWeekGroups(rows,spec.lifeWeeks.start,spec.lifeWeeks.end):D.chartGroups(rows,key,weekly?state.weekLimit:null);
+    return groups.map(([value,items])=>({label:groupLabel(value,key),...calc(items,spec.calc||page.calc)}));
   }
   function renderShell() {
     $('matrizesApp').innerHTML=`
@@ -200,7 +201,7 @@
       tooltip:{trigger:'axis',backgroundColor:c.bg,borderColor:c.grid,textStyle:{color:c.fg,fontSize:13},valueFormatter:(value)=>value==null?'Sem medição':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2})},
       legend:{bottom:0,type:'scroll',textStyle:{color:c.text,fontSize:11},itemWidth:13,itemHeight:7},
       grid:{top:28,left:12,right:hasSecond?12:18,bottom:data.length>24?66:38,containLabel:true},
-      xAxis:{type:'category',data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,hideOverlap:true}},
+      xAxis:{type:'category',data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,hideOverlap:!spec.lifeWeeks,interval:spec.lifeWeeks?0:'auto'}},
       yAxis:hasSecond?[axis,{...axis,position:'right',splitLine:{show:false},axisLabel:{...axis.axisLabel,formatter:v=>format(v,spec.series.find(s=>s.axis===1).unit||'pp',1)}}]:axis,
       dataZoom:data.length>24?[{type:'inside',start:0,end:100},{type:'slider',height:13,bottom:22,borderColor:c.grid,textStyle:{color:c.text,fontSize:10}}]:[],
       graphic:hasData?[]:[{type:'text',left:'center',top:'middle',style:{text:state.loaded?'Sem dados para os filtros selecionados':'Aguardando dados da API',font:'14px "Geist Variable", sans-serif',fill:c.text}}],

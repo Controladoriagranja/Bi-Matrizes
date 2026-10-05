@@ -74,3 +74,5 @@ O período inicial usa os dois meses fechados anteriores ao mês corrente (em ou
 Gráficos agrupados por semana do calendário usam os oito últimos grupos reais do período filtrado. Recria mantém todas as semanas de vida disponíveis no período filtrado, sem limite de oito, conforme a planilha de referência. Não inventam valores quando há menos de oito semanas. Gráficos diários, mensais, anuais e curvas por idade mantêm sua granularidade própria. As funções de período e agrupamento estão centralizadas em matrizes-data.js.
 
 O botão Mostrar Todas as Semanas retira o limite de oito grupos sem alterar o período nem os filtros de negócio; o mesmo botão permite voltar ao limite.
+
+Os quatro gráficos de Recria têm domínio explícito de semanas de vida 1 a 22. Semanas sem medições nos filtros ficam sem valores (não são convertidas em zero). Curvas de Produção e Incubatório por idade mantêm os domínios próprios da planilha, sem serem forçadas para 1 a 22.
