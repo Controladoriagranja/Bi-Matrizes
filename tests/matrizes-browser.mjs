@@ -119,6 +119,12 @@ try {
     await page.locator('[data-theme-toggle]').click();
 
     if(file==='producao.html') {
+      await page.locator('#chart-aproveitamento').evaluate(el=>{
+        const option=echarts.getInstanceByDom(el).getOption();
+        if(option.series[0].data.some(value=>value!=null&&value!==70)||option.series[1].data.some(value=>value!=null&&value!==30))throw new Error('Proporcao visual incorreta');
+        const text=option.tooltip[0].formatter([{seriesIndex:0,dataIndex:0,marker:''},{seriesIndex:1,dataIndex:0,marker:''}]);
+        if(!text.includes('Aproveitamento (%)')||text.includes('Aproveitamento (%): 70'))throw new Error('Tooltip deve preservar percentual real');
+      });
       const before=await page.locator('#recordCount').textContent();
       assert.equal(await page.locator('#startDate').inputValue(),'2026-08-01');
       assert.equal(await page.locator('#endDate').inputValue(),'2026-09-30');

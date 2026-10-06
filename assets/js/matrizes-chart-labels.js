@@ -5,8 +5,8 @@
   const reference=series=>/Std$|Target$/.test(series.key)||/\bSTD\b|meta/i.test(series.name);
   function getResponsiveLabelDensity(points,width) {
     const mobile=width<420,plot=Math.max(100,width-100);
-    const spacing=points<=8?50:points<=14?65:points<=25?80:105;
-    return Math.max(2,Math.min(mobile?6:points<=8?18:points<=14?12:points<=25?9:6,Math.floor(plot/(spacing*(mobile?1.2:1)))));
+    const spacing=points<=8?50:points<=14?60:points<=25?70:80;
+    return Math.max(2,Math.min(mobile?6:points<=8?18:points<=14?12:points<=25?12:14,Math.floor(plot/(spacing*(mobile?1.2:1)))));
   }
   function selectLabels(spec,data,width,height=285) {
     const selected=spec.series.map(()=>new Set());
@@ -54,8 +54,14 @@
     });
     candidates.sort((a,b)=>b.priority-a.priority||a.seriesIndex-b.seriesIndex||a.index-b.index);
     const accepted=[];
+    const coverageBudget=Math.floor(budget*0.45);
+    let coverageUsed=0;
     while(candidates.length){
       candidates.sort((a,b)=>{
+        if(accepted.length>=2&&coverageUsed<coverageBudget){
+          const distance=item=>Math.min(...accepted.map(old=>Math.abs(old.x-item.x)));
+          if(distance(a)!==distance(b))return distance(b)-distance(a);
+        }
         if(a.priority!==b.priority)return b.priority-a.priority;
         const distance=item=>accepted.length?Math.min(...accepted.map(old=>Math.hypot(old.x-item.x,old.y-item.y))):0;
         return distance(b)-distance(a)||a.seriesIndex-b.seriesIndex||a.index-b.index;
@@ -66,6 +72,7 @@
       selected[candidate.seriesIndex].add(candidate.index);
       if(!selected[candidate.seriesIndex].priorities)selected[candidate.seriesIndex].priorities=new Map();
       selected[candidate.seriesIndex].priorities.set(candidate.index,candidate.priority);accepted.push(candidate);
+      if(accepted.length>2&&coverageUsed<coverageBudget)coverageUsed++;
     }
     return selected;
   }

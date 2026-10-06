@@ -13,7 +13,7 @@
     producao: {file:'producao.html',module:'Produção',title:'Produção de ovos',subtitle:'Produção, aproveitamento e qualidade dos ovos na granja.',table:'granja',calc:'production',filters:['farm','lot','house','lineage','age'],group:'week',
       charts:[
         {id:'producao',title:'Produção semanal',axis:'Semana',series:compare('production','Produção','productionStd','diff')},
-        {id:'aproveitamento',title:'Aproveitamento na granja',axis:'Semana',series:[series('use','Aproveitamento','bar',{stack:'total'}),series('loss','Perdas','bar',{stack:'total',color:1}),series('useStd','Meta / STD','line',{dash:true,color:2})]},
+        {id:'aproveitamento',visualShares:{use:70,loss:30},labels:{maxLabels:16},title:'Aproveitamento na granja',axis:'Semana',series:[series('use','Aproveitamento','bar',{stack:'total'}),series('loss','Perdas','bar',{stack:'total',color:1}),series('useStd','Meta / STD','line',{dash:true,color:2})]},
         {id:'cama',title:'Ovos de cama',axis:'Semana',series:[series('bed','Ovos de cama'),series('bedStd','Meta / STD','line',{dash:true,color:1})]},
         {id:'perdas',title:'Perdas da produção',axis:'Semana',series:['trincado','vazado','sujo','duas_gemas','deformado','pequeno'].map((key,i)=>series(key,['Trincados','Vazados','Sujos','Duas gemas','Deformados','Pequenos'][i],'bar',{stack:'perdas',color:i}))}
       ],kpis:[['production','Produção','%'],['use','Aproveitamento','%'],['bed','Ovos de cama','%'],['loss','Perdas','%']]},

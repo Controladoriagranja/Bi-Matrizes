@@ -206,7 +206,7 @@
     const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,formatter:v=>format(v,unit,unit==='ovos'||unit==='g'?0:1)},splitLine:{lineStyle:{color:c.grid}}};
     chart.setOption({
       animationDuration:250,color:c.series,textStyle:{fontFamily:'Geist Variable, Geist, sans-serif',color:c.text},
-      tooltip:{trigger:'axis',backgroundColor:c.bg,borderColor:c.grid,textStyle:{color:c.fg,fontSize:13},valueFormatter:(value)=>value==null?'Sem medição':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2})},
+      tooltip:{trigger:'axis',backgroundColor:c.bg,borderColor:c.grid,textStyle:{color:c.fg,fontSize:13},formatter:params=>{const items=Array.isArray(params)?params:[params];const point=data[items[0]?.dataIndex];return `${escape(point?.label||'')}<br>${items.map(item=>{const series=spec.series[item.seriesIndex];const value=point?.[series.key];return `${item.marker}${escape(series.name)} (${escape(series.unit||unit)}): ${value==null?'Sem medição':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2})}`;}).join('<br>')}`;}},
       legend:{bottom:0,type:'scroll',formatter:name=>{const series=spec.series.find(item=>item.name===name);return pageId==='recria'?`${name} (${series?.unit||unit})`:name;},textStyle:{color:c.text,fontSize:11},itemWidth:13,itemHeight:7},
       grid:{top:65,left:12,right:hasSecond?12:18,bottom:data.length>24?66:38,containLabel:true},
       xAxis:{type:'category',data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,hideOverlap:!spec.lifeWeeks,interval:spec.lifeWeeks?0:'auto'}},
@@ -218,6 +218,7 @@
     MatrizesChartLayout.flush(chart);
     $(`chart-${spec.id}`).setAttribute('aria-label',`${spec.title}. ${data.length} períodos. ${hasData?'Consulte os valores no botão Dados.':'Sem dados disponíveis.'}`);
     $(`table-${spec.id}`).innerHTML=`<table class="mz-data-table"><caption class="hidden">${spec.title}</caption><thead><tr><th scope="col">${spec.axis}</th>${spec.series.map(s=>`<th scope="col">${escape(s.name)} (${s.unit||unit})</th>`).join('')}</tr></thead><tbody>${data.length?data.map(p=>`<tr><th scope="row">${escape(p.label)}</th>${spec.series.map(s=>`<td>${format(p[s.key],s.unit||unit)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${spec.series.length+1}">Sem dados</td></tr>`}</tbody></table>`;
+    if(spec.visualShares)$(`caption-${spec.id}`).textContent='Proporção visual fixa: 70% Aproveitamento / 30% Perdas · Rótulos e tooltip: valores reais';
     if(spec.id==='descarte'||spec.id==='descarte-mes')$(`caption-${spec.id}`).textContent=`${spec.axis} · %${settings.discardTarget==null?' · Meta não configurada':''}`;
     if(spec.id==='incubacao')$(`caption-${spec.id}`).textContent=`${spec.axis} · ovos${settings.incubationTarget==null?' · Meta não configurada':''}`;
   }
@@ -225,7 +226,7 @@
     page.charts.forEach(spec=>{
       const rows=filtered(spec.source==='extra'?state.extra:state.rows,spec.source==='extra',spec.allPeriods);
       renderChart(spec,points(rows,spec));
-      if((spec.group||page.group)==='week')$(`caption-${spec.id}`).textContent=`${spec.axis} · ${spec.unit||'%'} · ${state.weekLimit==null?'Todas as semanas':'Até 8 semanas'} do período selecionado`;
+      if((spec.group||page.group)==='week'&&!spec.visualShares)$(`caption-${spec.id}`).textContent=`${spec.axis} · ${spec.unit||'%'} · ${state.weekLimit==null?'Todas as semanas':'Até 8 semanas'} do período selecionado`;
       if(spec.allPeriods)$(`caption-${spec.id}`).textContent=`${spec.axis} · ${state.complete?'Histórico completo':'Histórico parcial em carregamento'}, independente do período selecionado`;
       if(spec.source==='extra'){
         const ignored=[...unavailableFilters(state.extra)].filter(key=>selected(key).size).map(key=>filterLabels[key]);

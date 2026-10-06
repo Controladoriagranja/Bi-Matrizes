@@ -41,8 +41,8 @@
       const series=spec.series[seriesIndex],value=data[index]?.[series.key];
       const host=params.rect||params.hostRect;
       if(value==null||!host||!params.labelRect)return {hideOverlap:false};
-      job.candidates.set(key,{seriesIndex,index,line:series.type==='line',stack:!!series.stack,host:{...host},width:params.labelRect.width,height:params.labelRect.height,
-        value,priority:selected[seriesIndex].priorities?.get(index)||0,text:Number(value).toLocaleString('pt-BR',{maximumFractionDigits:1})});
+      job.candidates.set(key,{seriesIndex,index,line:series.type==='line',stack:!!series.stack||series.type==='bar'&&spec.series.filter(item=>item.type==='bar').length===1,host:{...host},width:params.labelRect.width,height:params.labelRect.height,
+        value:spec.visualShares?.[series.key]??value,priority:selected[seriesIndex].priorities?.get(index)||0,text:Number(value).toLocaleString('pt-BR',{maximumFractionDigits:1})});
       return {hideOverlap:false};
     };
   }
