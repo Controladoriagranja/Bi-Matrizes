@@ -7,7 +7,7 @@
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const filterLabels={year:'Ano',week:'Semana',farm:'Fazenda',lot:'Lote',house:'Galpão',lineage:'Linhagem',age:'Idade (semanas)',origin:'Origem',stage:'Estágio da incubadora',status:'Situação atual'};
-  const state={rows:[],extra:[],charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8};
+  const state={rows:[],extra:[],charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8,chartSelection:null};
   const defaultPeriod=D.previousTwoMonths();
   state.start=defaultPeriod.start;state.end=defaultPeriod.end;
   const storageKey=`bi-matrizes-filtros-v3-${page.module}`;
@@ -53,6 +53,7 @@
       if(key===skip||skip?.has?.(key)||!values.size||allPeriods&&['year','month','week'].includes(key))continue;
       if(!values.has(String(row[key]??'')))return false;
     }
+    if(state.chartSelection&&String(groupValue(row,state.chartSelection.key))!==state.chartSelection.value)return false;
     return allPeriods||(!state.start||row.date>=state.start)&&(!state.end||row.date<=state.end);
   }
   const unavailableFilters=rows=>new Set(page.filters.filter(key=>key!=='sex'&&!rows.some(row=>row[key]!==''&&row[key]!=null)));
@@ -62,7 +63,16 @@
     const key=spec.group||page.group;
     const weekly=key==='week';
     const groups=spec.lifeWeeks?D.lifeWeekGroups(rows,spec.lifeWeeks.start,spec.lifeWeeks.end):D.chartGroups(rows,key,weekly?state.weekLimit:null);
-    return groups.map(([value,items])=>({label:groupLabel(value,key),...calc(items,spec.calc||page.calc)}));
+    return groups.map(([value,items])=>({filterKey:key,filterValue:String(value),label:groupLabel(value,key),...calc(items,spec.calc||page.calc)}));
+  }
+  function clearChartSelection() {
+    if(!state.chartSelection)return;
+    state.chartSelection=null;render();
+  }
+  function selectChartPoint(point) {
+    if(!point)return;
+    const same=state.chartSelection?.key===point.filterKey&&state.chartSelection.value===point.filterValue;
+    state.chartSelection=same?null:{key:point.filterKey,value:point.filterValue,label:point.label};render();
   }
   function renderShell() {
     $('matrizesApp').innerHTML=`
@@ -79,6 +89,7 @@
           <div id="notice" class="mz-notice hidden"></div>
           <section class="mz-kpis" id="kpis" aria-label="Indicadores do período"></section>
           <div class="mz-week-controls" ${pageId==='recria'?'hidden':''}><span id="weekLimitCaption">Até 8 Semanas por Gráfico</span><button id="toggleWeeks" class="mz-button" aria-pressed="false">Mostrar Todas as Semanas</button></div>
+          <div id="chartSelectionStatus" class="mz-selection-status hidden" role="status"></div>
           <section class="mz-charts" aria-label="Gráficos">${page.charts.map((spec,index)=>`${spec.section&&spec.section!==page.charts[index-1]?.section?`<h2 class="mz-section-title">${spec.section}</h2>`:''}
             <article class="mz-chart-card ${spec.wide?'wide':''}" id="card-${spec.id}"><div class="mz-chart-head"><div><h2>${spec.title}</h2><p id="caption-${spec.id}">${spec.axis} · ${spec.unit||'Percentual'}</p></div><div class="mz-chart-actions"><button type="button" data-table="${spec.id}" aria-expanded="false" aria-controls="table-${spec.id}">Dados</button><button type="button" data-expand="${spec.id}" aria-label="Ampliar ${spec.title}" aria-expanded="false">⤢</button></div></div><div id="chart-${spec.id}" class="mz-chart" role="img" aria-label="${spec.title}. Os valores estão disponíveis no botão Dados."></div><div id="table-${spec.id}" class="mz-table-wrap hidden"></div></article>`).join('')}</section>
 
@@ -91,6 +102,8 @@
     if(window.ThemeManager)document.querySelector('[data-theme-icon]').textContent=ThemeManager.get()==='dark'?'☀':'☾';
     $('kpis').addEventListener('click',event=>{const button=event.target.closest('[data-formula]');if(button)MatrizesFormulaUI.open({key:button.dataset.formula,page,sex:state.sex,rows:filtered(state.rows),value:D.simpleIndicators(filtered(state.rows),page.calc,state.sex)[button.dataset.formula]});});
     $('refresh').addEventListener('click',load);
+    $('chartSelectionStatus').addEventListener('click',clearChartSelection);
+    document.addEventListener('click',event=>{if(!event.target.closest('.mz-chart,button,a,input,summary,details,.mz-filters,.side-nav-root'))clearChartSelection();});
     $('toggleWeeks').addEventListener('click',()=>{
       state.weekLimit=state.weekLimit==null?8:null;
       $('toggleWeeks').textContent=state.weekLimit==null?'Mostrar Somente 8 Semanas':'Mostrar Todas as Semanas';
@@ -168,7 +181,7 @@
     scrolls.forEach(({el,key,top})=>{const target=el.isConnected?el:key?document.querySelector(`[data-filter-choice="${key}"] .mz-options`):null;if(target)target.scrollTop=top;});
     $('startDate').addEventListener('change',()=>{state.start=$('startDate').value;saveFilters();render();});
     $('endDate').addEventListener('change',()=>{state.end=$('endDate').value;saveFilters();render();});
-    $('clearFilters').addEventListener('click',()=>{state.filters={};state.start=defaultPeriod.start;state.end=defaultPeriod.end;saveFilters();render();});
+    $('clearFilters').addEventListener('click',()=>{state.chartSelection=null;state.filters={};state.start=defaultPeriod.start;state.end=defaultPeriod.end;saveFilters();render();});
   }
   function renderKpis(rows) {
     const data=D.simpleIndicators(rows,page.calc,state.sex),context='Média simples do período selecionado';
@@ -183,8 +196,13 @@
     const c=colors(),unit=spec.unit||'%',hasData=data.some(p=>spec.series.some(s=>p[s.key]!=null));
     const hasSecond=spec.series.some(s=>s.axis===1);
     let chart=state.charts.get(spec.id);
-    if(!chart){chart=echarts.init($(`chart-${spec.id}`),null,{renderer:'svg'});state.charts.set(spec.id,chart);}
-    const series=MatrizesChartStyle.series(spec,data,c,$(`chart-${spec.id}`).clientWidth,$(`chart-${spec.id}`).clientHeight);
+    if(!chart){
+      chart=echarts.init($(`chart-${spec.id}`),null,{renderer:'svg'});state.charts.set(spec.id,chart);
+      chart.on('click',event=>{if(event.componentType==='series'&&Number.isInteger(event.dataIndex))selectChartPoint(chart.mzPoints?.[event.dataIndex]);});
+      chart.getZr().on('click',event=>{if(!event.target)clearChartSelection();});
+    }
+    chart.mzPoints=data;
+    const series=MatrizesChartStyle.series(spec,data,c,$(`chart-${spec.id}`).clientWidth,$(`chart-${spec.id}`).clientHeight,chart);
     const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,formatter:v=>format(v,unit,unit==='ovos'||unit==='g'?0:1)},splitLine:{lineStyle:{color:c.grid}}};
     chart.setOption({
       animationDuration:250,color:c.series,textStyle:{fontFamily:'Geist Variable, Geist, sans-serif',color:c.text},
@@ -197,6 +215,7 @@
       graphic:hasData?[]:[{type:'text',left:'center',top:'middle',style:{text:state.loaded?'Sem dados para os filtros selecionados':'Aguardando dados da API',font:'14px "Geist Variable", sans-serif',fill:c.text}}],
       series
     },true);
+    MatrizesChartLayout.flush(chart);
     $(`chart-${spec.id}`).setAttribute('aria-label',`${spec.title}. ${data.length} períodos. ${hasData?'Consulte os valores no botão Dados.':'Sem dados disponíveis.'}`);
     $(`table-${spec.id}`).innerHTML=`<table class="mz-data-table"><caption class="hidden">${spec.title}</caption><thead><tr><th scope="col">${spec.axis}</th>${spec.series.map(s=>`<th scope="col">${escape(s.name)} (${s.unit||unit})</th>`).join('')}</tr></thead><tbody>${data.length?data.map(p=>`<tr><th scope="row">${escape(p.label)}</th>${spec.series.map(s=>`<td>${format(p[s.key],s.unit||unit)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${spec.series.length+1}">Sem dados</td></tr>`}</tbody></table>`;
     if(spec.id==='descarte'||spec.id==='descarte-mes')$(`caption-${spec.id}`).textContent=`${spec.axis} · %${settings.discardTarget==null?' · Meta não configurada':''}`;
@@ -218,6 +237,11 @@
     const rows=filtered(state.rows);
     
     renderFilters();renderKpis(rows);renderCharts();
+    const selection=state.chartSelection;
+    $('chartSelectionStatus').classList.toggle('hidden',!selection);
+    $('chartSelectionStatus').replaceChildren();
+    if(selection){const button=document.createElement('button');button.className='mz-button';button.textContent=`${selection.key==='age'?'Semana de vida':filterLabels[selection.key]||'Período'}: ${selection.label} · Limpar seleção ×`;$('chartSelectionStatus').append(button);}
+
     $('recordCount').textContent=state.loaded?`${rows.length.toLocaleString('pt-BR')} de ${state.rows.length.toLocaleString('pt-BR')} registros${page.extraTable?` · ${filtered(state.extra,true).length.toLocaleString('pt-BR')} registros ${page.extraTable==='incubacao'?'de incubação':'da curva'}`:''}`:'—';
     const dates=rows.map(r=>r.date).sort();
     $('periodCaption').textContent=dates.length?`Período: ${dayLabel(dates[0])} a ${dayLabel(dates.at(-1))}. Percentuais calculados pelas quantidades do período.`:'Sem registros no contexto selecionado.';

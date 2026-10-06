@@ -119,3 +119,6 @@ body.mz-expanded .mz-layout, body.side-nav-open .mz-layout { overflow:hidden; }
 .mz-formula-dialog::backdrop { background:#0008; }
 .mz-formula-dialog h2 { margin:0 0 15px; font-size:20px; }
 .mz-formula-dialog p { font-size:14px; line-height:1.6; }
+
+.mz-selection-status { margin:10px 0 16px; }
+.mz-selection-status.hidden { display:none; }

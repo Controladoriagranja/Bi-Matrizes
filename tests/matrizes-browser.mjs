@@ -57,6 +57,7 @@ try {
     assert.equal(await page.locator('#error').isVisible(),false);
     await page.locator('.mz-chart').first().evaluate(el=>{
       const option=echarts.getInstanceByDom(el).getOption();
+      if(!option.graphic?.[0]?.elements?.some(item=>item.type==='text'&&item.z>5))throw new Error('Camada de rotulos vazia');
       if(option.tooltip[0].trigger!=='axis')throw new Error('Tooltip incompleto');
       if(option.series.some(item=>item.data.some(value=>value!==null&&typeof value!=='number')))throw new Error('Valores alterados');
       const mixed=option.series.some(item=>item.type==='bar')&&option.series.some(item=>item.type==='line');
@@ -90,6 +91,15 @@ try {
     assert.ok(await page.locator('.mz-layout').evaluate(el=>el.scrollTop)>0,'O conteúdo realmente rolou');
     assert.equal(await page.locator('.mz-topbar').evaluate(el=>el.getBoundingClientRect().top),0);
     await page.evaluate(()=>document.querySelector('.mz-layout').scrollTop=0);
+    if(file==='index.html'&&!examplePaths.length){
+      const beforeSelection=await page.locator('#recordCount').textContent();
+      await page.locator('#chart-viabilidade').evaluate(el=>echarts.getInstanceByDom(el).trigger('click',{componentType:'series',dataIndex:11}));
+      assert.match(await page.locator('#recordCount').textContent(),/^1 de /);
+      assert.match(await page.locator('#chartSelectionStatus').textContent(),/12/);
+      assert.equal(await page.locator('#table-peso tbody tr').nth(11).locator('td').first().textContent(),'430,00 g');
+      await page.locator('#chart-viabilidade').evaluate(el=>echarts.getInstanceByDom(el).getZr().trigger('click',{target:null}));
+      assert.equal(await page.locator('#recordCount').textContent(),beforeSelection);
+    }
     const font=await page.locator('body').evaluate(el=>getComputedStyle(el).fontFamily);assert.match(font,/Geist Variable/);
     for(const selector of ['#clearFilters','.mz-chart-head h2','.mz-choice summary','.mz-chart svg text'])assert.match(await page.locator(selector).first().evaluate(el=>getComputedStyle(el).fontFamily),/Geist Variable/);
     await page.locator('.side-nav-rail').click();
@@ -104,6 +114,7 @@ try {
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-desktop.png')),fullPage:true});
     await page.locator('[data-theme-toggle]').click();
     assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
+    assert.ok(await page.locator('.mz-chart').first().evaluate(el=>echarts.getInstanceByDom(el).getZr().storage.getDisplayList().some(item=>item.z>=100&&item.type==='tspan'&&item.style.opacity!==0)),'Rotulos visiveis apos mudar tema');
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-desktop-dark.png')),fullPage:true});
     await page.locator('[data-theme-toggle]').click();
 

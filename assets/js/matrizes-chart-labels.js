@@ -29,8 +29,8 @@
       const add=(index,priority)=>priorities.set(index,Math.max(priority,priorities.get(index)||0));
       if(isReference&&constant)add(indices.at(-1),35);
       else {
-        add(indices[0],90);add(indices.at(-1),110);
-        if(!constant){add(indices[values.indexOf(min)],105);add(indices[values.indexOf(max)],105);}
+        add(indices[0],90);add(indices.at(-1),150);
+        if(!constant){add(indices[values.indexOf(min)],140);add(indices[values.indexOf(max)],140);}
         indices.forEach((index,position)=>{
           const value=data[index][series.key],ref=related?data[index][related.key]:null;
           const deviation=valid(ref)?Math.abs(value-ref):0;
@@ -39,7 +39,7 @@
           const previous=position?data[indices[position-1]][series.key]:null;
           const change=valid(previous)?Math.abs(value-previous):0;
           if(change>Math.max(Math.abs(previous||0)*0.05,(max-min)*0.2,0.5))add(index,80+Math.min(10,change/Math.max(0.5,max-min)));
-          if(!constant&&data.length<=25)add(index,10);
+          if(!isReference||!constant)add(index,10);
         });
       }
       const [axisMin,axisMax]=axes.get(series.axis||0)||[0,1];
@@ -54,10 +54,18 @@
     });
     candidates.sort((a,b)=>b.priority-a.priority||a.seriesIndex-b.seriesIndex||a.index-b.index);
     const accepted=[];
-    for(const candidate of candidates){
+    while(candidates.length){
+      candidates.sort((a,b)=>{
+        if(a.priority!==b.priority)return b.priority-a.priority;
+        const distance=item=>accepted.length?Math.min(...accepted.map(old=>Math.hypot(old.x-item.x,old.y-item.y))):0;
+        return distance(b)-distance(a)||a.seriesIndex-b.seriesIndex||a.index-b.index;
+      });
+      const candidate=candidates.shift();
       if(accepted.length>=budget)break;
       if(accepted.some(old=>Math.abs(old.x-candidate.x)<(old.w+candidate.w)/2+8&&Math.abs(old.y-candidate.y)<(old.h+candidate.h)/2+6))continue;
-      selected[candidate.seriesIndex].add(candidate.index);accepted.push(candidate);
+      selected[candidate.seriesIndex].add(candidate.index);
+      if(!selected[candidate.seriesIndex].priorities)selected[candidate.seriesIndex].priorities=new Map();
+      selected[candidate.seriesIndex].priorities.set(candidate.index,candidate.priority);accepted.push(candidate);
     }
     return selected;
   }

@@ -88,3 +88,11 @@ A apresentação é centralizada em matrizes-chart-style.js: rótulos acima de c
 As páginas atuais usam ECharts com renderização SVG, sem Chart.js/chartjs-plugin-datalabels. O helper matrizes-chart-labels.js seleciona textos permanentes por série, priorizando anomalias, extremos e endpoints. Mudanças bruscas vêm antes dos pontos intermediários. A quantidade total é limitada pela largura disponível, densidade de pontos e múltiplas séries. Referências constantes têm no máximo um candidato, no último valor válido; referências e STD têm prioridade menor em colisões com valores reais. As tolerâncias podem ser configuradas com labels.deviationThreshold e labels.maxLabels na definição do gráfico.
 
 Antes da renderização, caixas estimadas dos candidatos são comparadas por prioridade; ECharts hideOverlap evita colisões na geometria final. Todos os valores continuam no tooltip por categoria e na tabela Dados. O texto é horizontal com fonte de 11 px, sem reduzir ou rotacionar para acomodar todos os pontos. Redimensionamento e ampliação recalculam a seleção. Escalas, cores, séries, filtros e cálculos permanecem iguais.
+
+## Camada de rótulos e geometria real
+
+matrizes-chart-layout.js recebe os retângulos reais calculados pelo ECharts, ordena candidatos por prioridade e resolve colisões entre séries. Linhas tentam acima e depois abaixo; barras usam o topo; segmentos empilhados só recebem texto quando cabem em altura e largura. A seleção inclui intermediários espaçados quando sobra área, mantendo a exceção de referência constante.
+
+Os textos são desenhados em uma camada gráfica silenciosa acima das linhas, com fundo neutro do tema e cantos discretos. Essa camada não intercepta mouse/toque nem substitui dados de tooltip. A geometria é atualizada após renderizar, ampliar, redimensionar e aplicar zoom. Rótulos de pontos fora da área visível não são desenhados. A prioridade é último ponto, extremos, anomalias, primeiro e intermediários.
+
+Clicar num ponto/coluna aplica uma seleção temporária pela dimensão do gráfico (semana de vida, semana do calendário, data, mês ou ano) a todos os gráficos e cards da tela. Clicar numa área vazia ou em Limpar seleção restaura os filtros anteriores. A seleção não modifica os dados nem substitui os filtros persistidos da sessão.

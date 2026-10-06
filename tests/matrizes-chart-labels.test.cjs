@@ -28,5 +28,11 @@ test('gráficos mistos mantêm todos os pontos de linha sem textos permanentes',
 test('CV não é comparado ao STD de uniformidade e série plana não produz falsos alertas',()=>{
   const spec={series:[{key:'uniform',name:'Uniformidade',type:'line'},{key:'uniformStd',name:'STD',type:'line'},{key:'cv',name:'CV',type:'line'}]};
   const data=Array.from({length:22},()=>({uniform:85,uniformStd:80,cv:6}));const selected=L.selectLabels(spec,data,640);
-  assert.ok(selected[2].size<=2);assert.ok(selected[0].size<=2);
+  assert.ok(selected[2].size<22);assert.ok(selected[0].size<22);
+});
+
+test('preenche espaço com intermediários distribuídos, sem repetir STD constante',()=>{
+  const spec={series:[{key:'actual',name:'Real',type:'line'},{key:'actualStd',name:'STD',type:'line'}]};
+  const data=Array.from({length:22},()=>({actual:95,actualStd:80}));const labels=L.selectLabels(spec,data,900);
+  assert.ok(labels[0].size>2);assert.ok([...labels[0]].some(index=>index>5&&index<16));assert.ok(labels[1].size<=1);
 });
