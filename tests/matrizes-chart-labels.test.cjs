@@ -37,13 +37,29 @@ test('preenche espaço com intermediários distribuídos, sem repetir STD consta
   assert.ok(labels[0].size>2);assert.ok([...labels[0]].some(index=>index>5&&index<16));assert.ok(labels[1].size<=1);
 });
 
-test('área ampliada permite densidade progressivamente maior',()=>{
-  assert.ok(L.getResponsiveLabelDensity(22,1200,650)>L.getResponsiveLabelDensity(22,500,285));
-  assert.ok(L.getResponsiveLabelDensity(22,600,600)>L.getResponsiveLabelDensity(22,600,285));
+test('área ampliada seleciona materialmente mais rótulos de linha',()=>{
+  const spec={series:[{key:'actual',type:'line',name:'Real'}]};
+  const data=Array.from({length:22},(_,i)=>({actual:50+Math.sin(i/4)*5}));
+  const normal=L.selectLabels(spec,data,500,285)[0],expanded=L.selectLabels(spec,data,1300,850)[0];
+  assert.ok(expanded.size>=normal.size*1.5);
 });
 
 test('zoom recalcula rótulos no intervalo visível sem mudar valores',()=>{
   const spec={series:[{key:'actual',name:'Real',type:'line'}],labels:{visibleStart:10,visibleEnd:17}};
   const data=Array.from({length:52},(_,i)=>({actual:50+i*.1}));const before=JSON.stringify(data);
   const labels=L.selectLabels(spec,data,700,400)[0];assert.ok(labels.size>=3);for(const index of labels)assert.ok(index>=10&&index<=17);assert.equal(JSON.stringify(data),before);
+});
+
+test('barras agrupadas incluem todos os valores válidos, inclusive STD constante',()=>{
+  const spec={series:[{key:'viab',type:'bar'},{key:'viabStd',name:'STD',type:'bar'},{key:'diff',type:'line'}]};
+  const data=Array.from({length:22},()=>({viab:99,viabStd:98,diff:1}));
+  const labels=L.selectLabels(spec,data,350,285);assert.equal(labels[0].size,22);assert.equal(labels[1].size,22);assert.equal(labels[2].size,0);
+});
+test('zoom aumenta densidade por ponto e restauração recupera seleção',()=>{
+  const spec={series:[{key:'actual',type:'line',name:'Real'}]};
+  const data=Array.from({length:52},(_,i)=>({actual:50+Math.sin(i/4)})),original=JSON.stringify(data);
+  const before=L.selectLabels(spec,data,700,400)[0];
+  const zoom=L.selectLabels({...spec,labels:{visibleStart:10,visibleEnd:17}},data,700,400)[0];
+  assert.ok(zoom.size/8>before.size/52*2);
+  assert.deepEqual([...L.selectLabels(spec,data,700,400)[0]],[...before]);assert.equal(JSON.stringify(data),original);
 });

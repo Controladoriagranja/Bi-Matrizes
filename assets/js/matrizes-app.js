@@ -116,8 +116,7 @@
     }));
     document.querySelectorAll('[data-expand]').forEach(button=>button.addEventListener('click',()=>expand(button.dataset.expand)));
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExpanded();});
-    let resizeTimer;
-    window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{state.charts.forEach(chart=>chart.resize());renderCharts();},120);});
+    window.addEventListener('resize',()=>state.charts.forEach(scheduleChartPresentation));
     document.addEventListener('dashboard:theme-changed',()=>renderCharts());
 
   }
@@ -126,11 +125,11 @@
       card.classList.remove('expanded');const button=card.querySelector('[data-expand]');
       button.textContent='⤢';button.setAttribute('aria-expanded','false');button.setAttribute('aria-label',`Ampliar ${card.querySelector('h2').textContent}`);button.focus();
     });
-    document.body.classList.remove('mz-expanded');state.charts.forEach(chart=>chart.resize());renderCharts();
+    document.body.classList.remove('mz-expanded');state.charts.forEach(scheduleChartPresentation);
   }
   function expand(id) {
     const card=$(`card-${id}`),wasOpen=card.classList.contains('expanded');closeExpanded();
-    if(!wasOpen){card.classList.add('expanded');document.body.classList.add('mz-expanded');const button=card.querySelector('[data-expand]');button.textContent='×';button.setAttribute('aria-expanded','true');button.setAttribute('aria-label','Fechar gráfico ampliado');state.charts.get(id)?.resize();renderCharts();}
+    if(!wasOpen){card.classList.add('expanded');document.body.classList.add('mz-expanded');const button=card.querySelector('[data-expand]');button.textContent='×';button.setAttribute('aria-expanded','true');button.setAttribute('aria-label','Fechar gráfico ampliado');scheduleChartPresentation(state.charts.get(id));}
   }
   function filterChoice(key,rows) {
     const values=[...new Set(rows.map(r=>String(r[key]??'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
@@ -191,6 +190,24 @@
     const css=getComputedStyle(document.documentElement);
     return {dark:document.documentElement.dataset.theme==='dark',text:css.getPropertyValue('--muted-foreground').trim(),grid:css.getPropertyValue('--border').trim(),bg:css.getPropertyValue('--card').trim(),fg:css.getPropertyValue('--foreground').trim(),series:[css.getPropertyValue('--primary').trim(),'#e8913b','#95949b','#6d9975','#c3a548','#7895b6']};
   }
+  // Atualiza só a apresentação; preserva os dados, tooltip e o zoom atual.
+  function scheduleChartPresentation(chart) {
+    if(!chart||chart.mzPresentationFrame)return;
+    chart.mzPresentationFrame=requestAnimationFrame(()=>{
+      chart.mzPresentationFrame=null;
+      if(chart.isDisposed()||!chart.mzSpec)return;
+      const element=chart.getDom();
+      if(!element.clientWidth||!element.clientHeight)return;
+      chart.resize({width:element.clientWidth,height:element.clientHeight});
+      const extent=chart.getModel().getComponent('xAxis')?.axis?.scale?.getExtent();
+      const spec=chart.mzSpec,points=chart.mzPoints;
+      const visibleStart=Math.max(0,Math.ceil(extent?.[0]??0)),visibleEnd=Math.min(points.length-1,Math.floor(extent?.[1]??points.length-1));
+      const plot=chart.getModel().getComponent('grid')?.coordinateSystem?.getRect();
+      const selectionSpec={...spec,labels:{...spec.labels,visibleStart,visibleEnd}};
+      chart.setOption({series:MatrizesChartStyle.series(selectionSpec,points,colors(),(plot?.width||element.clientWidth)+100,(plot?.height||element.clientHeight)+100,chart)});
+      MatrizesChartLayout.flush(chart);
+    });
+  }
   function renderChart(spec,data) {
     if(!window.echarts)throw new Error('Não foi possível carregar a biblioteca de gráficos.');
     const c=colors(),unit=spec.unit||'%',hasData=data.some(p=>spec.series.some(s=>p[s.key]!=null));
@@ -200,18 +217,17 @@
       chart=echarts.init($(`chart-${spec.id}`),null,{renderer:'svg'});state.charts.set(spec.id,chart);
       chart.on('click',event=>{if(event.componentType==='series'&&Number.isInteger(event.dataIndex))selectChartPoint(chart.mzPoints?.[event.dataIndex]);});
       chart.getZr().on('click',event=>{if(!event.target)clearChartSelection();});
-      chart.on('datazoom',()=>queueMicrotask(()=>{
-        const range=chart.getOption().dataZoom?.[0],points=chart.mzPoints;
-        if(!range||!points?.length)return;
-        const visibleStart=Math.floor((range.start||0)*(points.length-1)/100),visibleEnd=Math.ceil((range.end??100)*(points.length-1)/100);
-        const selectionSpec={...spec,labels:{...spec.labels,visibleStart,visibleEnd}};
-        const element=$(`chart-${spec.id}`);
-        chart.setOption({series:MatrizesChartStyle.series(selectionSpec,points,colors(),element.clientWidth,element.clientHeight,chart)});
-        MatrizesChartLayout.flush(chart);
-      }));
+      chart.on('datazoom',()=>scheduleChartPresentation(chart));
+      let previousSize='';
+      chart.mzResizeObserver=new ResizeObserver(entries=>{
+        const {width,height}=entries[0].contentRect,size=`${width}:${height}`;
+        if(size===previousSize)return;
+        previousSize=size;scheduleChartPresentation(chart);
+      });
+      chart.mzResizeObserver.observe(chart.getDom());
 
     }
-    chart.mzPoints=data;
+    chart.mzPoints=data;chart.mzSpec=spec;
     const series=MatrizesChartStyle.series(spec,data,c,$(`chart-${spec.id}`).clientWidth,$(`chart-${spec.id}`).clientHeight,chart);
     const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,formatter:v=>MatrizesChartLayout.formatValue(v,unit,spec.digits??1)+(unit==='%'?'':` ${unit}`)},splitLine:{lineStyle:{color:c.grid}}};
     chart.setOption({
@@ -226,6 +242,7 @@
       series
     },true);
     MatrizesChartLayout.flush(chart);
+    scheduleChartPresentation(chart);
     $(`chart-${spec.id}`).setAttribute('aria-label',`${spec.title}. ${data.length} períodos. ${hasData?'Consulte os valores no botão Dados.':'Sem dados disponíveis.'}`);
     $(`table-${spec.id}`).innerHTML=`<table class="mz-data-table"><caption class="hidden">${spec.title}</caption><thead><tr><th scope="col">${spec.axis}</th>${spec.series.map(s=>`<th scope="col">${escape(s.name)} (${s.unit||unit})</th>`).join('')}</tr></thead><tbody>${data.length?data.map(p=>`<tr><th scope="row">${escape(p.label)}</th>${spec.series.map(s=>`<td>${MatrizesChartLayout.formatValue(p[s.key],s.unit||unit,s.digits??spec.digits??2)+((s.unit||unit)==='%'?'':` ${s.unit||unit}`)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${spec.series.length+1}">Sem dados</td></tr>`}</tbody></table>`;
     if(spec.visualShares)$(`caption-${spec.id}`).textContent='Proporção visual fixa: 70% Aproveitamento / 30% Perdas · Rótulos e tooltip: valores reais';

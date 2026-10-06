@@ -19,7 +19,7 @@ if(examplePaths.length) {
     const common={id:i+1,carregado_em:'2026-10-05T10:37:00',data:date,lote:i%2?'A':'B',granja:'FAZENDA EXEMPLO',galpao:'01',linhagem:i%2?'COBB':'HUBBARD',idade:30+i%3,empresa_codigo:'2',unidade_codigo:'1'};
     fixtures.granja.push({...common,saldo_femeas:1000,ovos_produzidos:700,prod_std_pct:68,incubaveis_granja:679,cama:21,cama_std_pct:4,aprov_std_pct:97,trincado:5,sujo:4,vazado:3,duas_gemas:4,deformado:3,pequeno:2});
     fixtures.acerto_produtor_producao.push({...common,ini_semana:date,cab_lote:common.lote,cab_granja:common.granja,cab_galpao:'01',cab_linhagem:i%2?'COBB':'HUBBARD',ida_sem:common.idade,saldo_femea:1000,producao:'70,00',producao_std:'68,00',tipo_movto:'Diário'});
-    fixtures.acerto_produtor_recria.push({...common,ini_semana:date,cab_lote:common.lote,cab_granja:common.granja,cab_galpao:'01',cab_linhagem:i%2?'COBB':'HUBBARD',ida_sem:i+1,cab_femeas:1000,saldo_femea:990,viab_fem:99,std_viab_fem:98,ps_medio_femeas:100+i*30,ps_medio_std_femeas:100+i*28,unif_femeas:85,unif_std_femeas:80,cv_femeas:6,cab_macho:100,saldo_macho:99,viab_mac:99,std_viab_mac:98,ps_medio_machos:120+i*40,ps_medio_std_machos:120+i*39,unif_machos:80,unif_std_machos:80,cv_machos:7,situacao:'Aberto'});
+    fixtures.acerto_produtor_recria.push({...common,ini_semana:date,cab_lote:common.lote,cab_granja:common.granja,cab_galpao:'01',cab_linhagem:i%2?'COBB':'HUBBARD',ida_sem:i+1,cab_femeas:1000,saldo_femea:990,viab_fem:99,std_viab_fem:98,ps_medio_femeas:100+i*30,ps_medio_std_femeas:100+i*28,unif_femeas:85,unif_std_femeas:80,cv_femeas:6,consu_ali_gr_femeas:25+i*3,consu_ali_std_femeas:24+i*3,consu_ali_gr_machos:30+i*3,consu_ali_std_machos:29+i*3,cab_macho:100,saldo_macho:99,viab_mac:99,std_viab_mac:98,ps_medio_machos:120+i*40,ps_medio_std_machos:120+i*39,unif_machos:80,unif_std_machos:80,cv_machos:7,situacao:'Aberto'});
     fixtures.eclosao.push({...common,eclosao:date,incubacao:'2026-07-11',quantid:'1.000',nascidos:'800',descarte:'8',eclosao_std:'85,00',origem:'Próprio'});
     fixtures.embrio.push({...common,integrado:common.granja,incubados:'1.000',nascidos:'800',nao_eclodidos:'200',total_analisado:'100',qtde:'5',std:'4,00',qtde_2:'3',std_2:'4,00',qtde_3:'1',std_3:'0,50',qtde_4:'5',std_4:'4,00',qtde_7:'1',qtde_8:'1',qtde_9:'1',qtde_10:'0',std_9:'0,75',std_10:'0,00'});
     fixtures.inc.push({...common,recebimento:date,total:700,origem:'Próprio'});
@@ -51,6 +51,16 @@ try {
   const errors=[],page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
   const base=`http://127.0.0.1:${server.address().port}`;
   const files=['index.html','producao.html','incubatorio.html','embrio.html'];
+  const settle=async()=>{await page.waitForFunction(()=>[...document.querySelectorAll('.mz-chart')].every(el=>!echarts.getInstanceByDom(el)?.mzPresentationFrame));await page.waitForTimeout(300);};
+  const stats=async id=>page.locator(`#chart-${id}`).evaluate(el=>{
+    const chart=echarts.getInstanceByDom(el),positions=chart.mzLabelPositions||[],option=chart.getOption();
+    return {drawn:chart.getZr().storage.getDisplayList().filter(item=>item.type==='tspan'&&item.z>=100&&item.style.opacity!==0).length,count:positions.length,rotated:positions.filter(item=>item.rotation).length,external:positions.filter(item=>item.external).length,
+      candidates:chart.mzPoints.reduce((n,point)=>n+chart.mzSpec.series.filter(series=>series.type==='bar'&&point[series.key]!=null).length,0),
+      series:JSON.stringify(option.series.map(item=>item.data)),tooltip:option.tooltip[0].formatter(chart.mzSpec.series.map((_,index)=>({seriesIndex:index,dataIndex:0,marker:''}))),
+      positions:positions.map(({seriesIndex,index,x,y,width,height,rotation,inside,external})=>({seriesIndex,index,x,y,width,height,rotation,inside,external}))};
+  });
+  const metrics=[];
+
   for(const file of files) {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
     await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('completo')).catch(async error=>{throw new Error(`${file}: ${await page.locator('#error').textContent()} / ${errors.join(' | ')} / ${error.message}`);});
@@ -110,8 +120,56 @@ try {
     await page.keyboard.press('Escape');assert.equal(await page.locator('.side-nav-root.open').count(),0);
     await page.locator('[data-table]').first().click();assert.equal(await page.locator('.mz-table-wrap').first().isVisible(),true);
     await page.locator('[data-table]').first().click();
+    const targets=file==='index.html'?['viabilidade','uniformidade','peso','gad']:file==='producao.html'?['producao','aproveitamento','cama','perdas','diaria']:file==='incubatorio.html'?['etaria','eclosao','incubacao','estoque']:['nao-eclodidos','infertilidade'];
+    for(const id of targets){
+      await settle();const normal=await stats(id);assert.equal(normal.drawn,normal.count,`${id}: rótulos aceitos devem ser desenhados`);
+      await page.locator(`#card-${id}`).screenshot({path:path.join(screenshotDir,`${id}-labels-normal-light.png`)});
+      await page.locator(`[data-expand="${id}"]`).click();await settle();const expanded=await stats(id);assert.equal(expanded.drawn,expanded.count,`${id}: rótulos ampliados devem ser desenhados`);
+      assert.equal(expanded.series,normal.series,`${id}: expansão alterou os dados`);assert.equal(expanded.tooltip,normal.tooltip,`${id}: tooltip alterado`);
+      assert.ok(expanded.count>=normal.count,`${id}: expansão reduziu rótulos`);
+      if(!examplePaths.length&&id==='viabilidade'){
+        assert.equal(expanded.count,44);assert.ok(expanded.count>=normal.count*1.5);assert.ok(normal.rotated>0);
+        await page.setViewportSize({width:2400,height:1000});await settle();const wide=await stats(id);
+        assert.equal(wide.count,44);assert.equal(wide.rotated,0,'Mais largura deve permitir orientação horizontal');assert.equal(wide.series,normal.series);
+        await page.locator('#chart-viabilidade').evaluate(el=>el.style.width='600px');await settle();const container=await stats(id);
+        assert.ok(container.count<wide.count,'ResizeObserver deve reagir a mudança só do container');assert.equal(container.series,normal.series);
+        assert.equal(await page.locator('#chart-viabilidade').evaluate(el=>echarts.getInstanceByDom(el).getWidth()),600);
+        await page.locator('#chart-viabilidade').evaluate(el=>el.style.width='');await settle();
+
+        await page.setViewportSize({width:1440,height:1000});await settle();
+      }
+      if(id==='perdas'&&normal.count<normal.candidates)assert.ok(expanded.count>normal.count,'Perdas: expansão deve revelar segmentos omitidos');
+      await page.locator(`#card-${id}`).screenshot({path:path.join(screenshotDir,`${id}-labels-expanded-light.png`)});
+      await page.locator('[data-theme-toggle]').evaluate(el=>el.click());await settle();
+      await page.locator(`#card-${id}`).screenshot({path:path.join(screenshotDir,`${id}-labels-expanded-dark.png`)});
+      await page.keyboard.press('Escape');await settle();
+      await page.locator(`#card-${id}`).screenshot({path:path.join(screenshotDir,`${id}-labels-normal-dark.png`)});
+      await page.locator('[data-theme-toggle]').click();await settle();
+      await page.setViewportSize({width:390,height:844});await settle();
+      await page.locator(`#card-${id}`).screenshot({path:path.join(screenshotDir,`${id}-labels-mobile-light.png`)});
+      await page.locator('[data-theme-toggle]').click();await settle();
+      await page.locator(`#card-${id}`).screenshot({path:path.join(screenshotDir,`${id}-labels-mobile-dark.png`)});
+      await page.locator('[data-theme-toggle]').click();await page.setViewportSize({width:1440,height:1000});await settle();
+      metrics.push({id,normal,expanded});fs.writeFileSync(path.join(screenshotDir,'labels-metrics.json'),JSON.stringify(metrics,null,2));
+    }
     await page.locator('[data-expand]').first().click();assert.equal(await page.locator('.mz-chart-card.expanded').count(),1);
-    await page.keyboard.press('Escape');assert.equal(await page.locator('.mz-chart-card.expanded').count(),0);
+    await page.keyboard.press('Escape');await settle();assert.equal(await page.locator('.mz-chart-card.expanded').count(),0);
+    if(file==='index.html'&&!examplePaths.length){
+      await page.locator('#chart-uniformidade').evaluate(el=>{
+        const chart=echarts.getInstanceByDom(el),spec=chart.mzSpec;
+        const points=Array.from({length:52},(_,i)=>({label:String(i),uniform:80+Math.sin(i/4)*10,uniformStd:80,cv:6+Math.cos(i/5)}));
+        chart.mzPoints=points;
+        chart.setOption({xAxis:{data:points.map(point=>point.label)},dataZoom:[{type:'inside',start:0,end:100}],series:MatrizesChartStyle.series(spec,points,{...{dark:false,text:'#555',grid:'#ddd',bg:'#fff',fg:'#222',series:['#7a1726','#e8913b','#95949b']}},el.clientWidth,el.clientHeight,chart)});
+        chart.dispatchAction({type:'dataZoom',start:0,end:100});
+      });await settle();const before=await stats('uniformidade');
+      await page.locator('#chart-uniformidade').evaluate(el=>echarts.getInstanceByDom(el).dispatchAction({type:'dataZoom',startValue:10,endValue:17}));await settle();const zoom=await stats('uniformidade');
+      fs.writeFileSync(path.join(screenshotDir,'zoom-debug.json'),JSON.stringify({before,zoom},null,2));assert.equal(zoom.series,before.series,'Zoom não pode alterar o array de dados');assert.ok(zoom.count/8>before.count/52*2,'Zoom deve aumentar materialmente a densidade por ponto');
+      assert.ok(zoom.positions.every(item=>item.index>=10&&item.index<=17));assert.equal(zoom.drawn,zoom.count);
+      await page.locator('#card-uniformidade').screenshot({path:path.join(screenshotDir,'uniformidade-labels-zoom.png')});
+      await page.locator('#chart-uniformidade').evaluate(el=>echarts.getInstanceByDom(el).dispatchAction({type:'dataZoom',start:0,end:100}));await settle();const restored=await stats('uniformidade');
+      assert.equal(restored.series,before.series);assert.equal(restored.count,before.count);metrics.push({id:'zoom-52-para-8',before,zoom,restored});
+      await page.locator('[data-theme-toggle]').click();await page.locator('[data-theme-toggle]').click();await settle();
+    }
     if(file==='index.html'){
       await page.waitForFunction(()=>echarts.getInstanceByDom(document.querySelector('.mz-chart'))?.getOption().graphic?.[0]?.elements?.some(item=>item.type==='text'&&item.z>5)).catch(()=>{throw new Error('Rotulos ausentes em '+file);});
     await page.locator('.mz-chart').first().evaluate(el=>{const chart=echarts.getInstanceByDom(el);chart.setOption({dataZoom:[{type:'inside',start:0,end:100}]});chart.dispatchAction({type:'dataZoom',start:40,end:70});});
@@ -216,6 +274,8 @@ try {
   const brokenPage=await broken.newPage();await brokenPage.goto(`${base}/producao.html`);await brokenPage.locator('#error').waitFor({state:'visible'});
   assert.match(await brokenPage.locator('#error').textContent(),/incompleta/);
   assert.equal(await brokenPage.locator('.mz-kpi strong').first().textContent(),'—');await broken.close();
+  fs.writeFileSync(path.join(screenshotDir,'labels-metrics.json'),JSON.stringify(metrics,null,2));
   console.log(`PASS: 4 telas desktop/mobile, menu lateral e navegação, tema, filtros, dados, ampliação, 6 tabelas com todas as páginas, sessão ausente e paginação incompleta. ${examplePaths.length?'Exemplos reais dos anexos.':'Dados sintéticos.'}`);
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
+
 
