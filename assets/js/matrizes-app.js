@@ -175,7 +175,7 @@
   }
   function colors() {
     const css=getComputedStyle(document.documentElement);
-    return {text:css.getPropertyValue('--muted-foreground').trim(),grid:css.getPropertyValue('--border').trim(),bg:css.getPropertyValue('--card').trim(),fg:css.getPropertyValue('--foreground').trim(),series:[css.getPropertyValue('--primary').trim(),'#e8913b','#95949b','#6d9975','#c3a548','#7895b6']};
+    return {dark:document.documentElement.dataset.theme==='dark',text:css.getPropertyValue('--muted-foreground').trim(),grid:css.getPropertyValue('--border').trim(),bg:css.getPropertyValue('--card').trim(),fg:css.getPropertyValue('--foreground').trim(),series:[css.getPropertyValue('--primary').trim(),'#e8913b','#95949b','#6d9975','#c3a548','#7895b6']};
   }
   function renderChart(spec,data) {
     if(!window.echarts)throw new Error('Não foi possível carregar a biblioteca de gráficos.');
@@ -183,19 +183,13 @@
     const hasSecond=spec.series.some(s=>s.axis===1);
     let chart=state.charts.get(spec.id);
     if(!chart){chart=echarts.init($(`chart-${spec.id}`),null,{renderer:'svg'});state.charts.set(spec.id,chart);}
-    const series=spec.series.map((s,i)=>({
-      name:s.name,type:s.type,data:data.map(p=>p[s.key]??null),yAxisIndex:s.axis||0,
-      stack:s.stack,smooth:s.type==='line'?0.3:false,connectNulls:false,symbolSize:4,showSymbol:data.length<24,
-      barMaxWidth:24,itemStyle:{color:c.series[s.color??i%c.series.length],borderRadius:s.stack?0:[3,3,0,0]},
-      lineStyle:{width:2,type:s.dash?'dashed':'solid'},
-      emphasis:{focus:'series'},labelLayout:{hideOverlap:pageId!=='recria'},label:{show:s.type==='bar'&&(pageId==='recria'||data.length<=8),position:pageId==='recria'?'inside':s.stack?'inside':'top',rotate:pageId==='recria'?90:0,color:pageId==='recria'?'#fff':undefined,fontSize:pageId==='recria'?10:11,formatter:p=>p.value==null?'':Number(p.value).toLocaleString('pt-BR',{maximumFractionDigits:1})}
-    }));
+    const series=MatrizesChartStyle.series(spec,data,c,$(`chart-${spec.id}`).clientWidth);
     const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,formatter:v=>format(v,unit,unit==='ovos'||unit==='g'?0:1)},splitLine:{lineStyle:{color:c.grid}}};
     chart.setOption({
       animationDuration:250,color:c.series,textStyle:{fontFamily:'Geist Variable, Geist, sans-serif',color:c.text},
       tooltip:{trigger:'axis',backgroundColor:c.bg,borderColor:c.grid,textStyle:{color:c.fg,fontSize:13},valueFormatter:(value)=>value==null?'Sem medição':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2})},
       legend:{bottom:0,type:'scroll',formatter:name=>{const series=spec.series.find(item=>item.name===name);return pageId==='recria'?`${name} (${series?.unit||unit})`:name;},textStyle:{color:c.text,fontSize:11},itemWidth:13,itemHeight:7},
-      grid:{top:28,left:12,right:hasSecond?12:18,bottom:data.length>24?66:38,containLabel:true},
+      grid:{top:65,left:12,right:hasSecond?12:18,bottom:data.length>24?66:38,containLabel:true},
       xAxis:{type:'category',data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,hideOverlap:!spec.lifeWeeks,interval:spec.lifeWeeks?0:'auto'}},
       yAxis:hasSecond?[axis,{...axis,position:'right',splitLine:{show:false},axisLabel:{...axis.axisLabel,formatter:v=>format(v,spec.series.find(s=>s.axis===1).unit||'pp',1)}}]:axis,
       dataZoom:data.length>24?[{type:'inside',start:0,end:100},{type:'slider',height:13,bottom:22,borderColor:c.grid,textStyle:{color:c.text,fontSize:10}}]:[],

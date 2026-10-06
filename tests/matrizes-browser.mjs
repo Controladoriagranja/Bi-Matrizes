@@ -55,6 +55,15 @@ try {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
     await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('histórico completo'));
     assert.equal(await page.locator('#error').isVisible(),false);
+    await page.locator('.mz-chart').first().evaluate(el=>{
+      const option=echarts.getInstanceByDom(el).getOption();
+      const mixed=option.series.some(item=>item.type==='bar')&&option.series.some(item=>item.type==='line');
+      for(const series of option.series){
+        if(series.type==='line'&&mixed){if(series.label.show||series.lineStyle.width<3)throw new Error('Linha mista sem destaque');}
+        else if(!series.label.show)throw new Error('Rótulos ausentes');
+      }
+    });
+
     if(file==='index.html')assert.ok((await page.locator('.mz-kpi small').first().textContent()).includes('Média simples do período selecionado'));
     if(file==='index.html')for(const id of ['viabilidade','uniformidade','peso','gad']){
       const rows=page.locator(`#table-${id} tbody tr`);assert.equal(await rows.count(),22);

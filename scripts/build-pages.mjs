@@ -15,22 +15,23 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
     try { const theme = localStorage.getItem('bi-zootecnico-theme'); document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light'; } catch (_) {}
   </script>
   <link rel="stylesheet" href="assets/vendor/geist/index.css">
-  <link rel="stylesheet" href="assets/css/zootecnico-base.css?v=20261006-scroll-conteudo">
-  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261006-scroll-conteudo">
+  <link rel="stylesheet" href="assets/css/zootecnico-base.css?v=20261006-rotulos">
+  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261006-rotulos">
 </head>
 <body class="matrizes-page" data-page="${id}">
   <div id="matrizesApp"></div>
   <noscript>Ative o JavaScript para consultar os indicadores de Matrizes.</noscript>
   <script src="assets/vendor/echarts/echarts.min.js"></script>
-  <script src="assets/js/config.js?v=20261006-scroll-conteudo"></script>
-  <script src="assets/js/api.js?v=20261006-scroll-conteudo"></script>
-  <script src="assets/js/theme.js?v=20261006-scroll-conteudo"></script>
-  <script src="assets/js/matrizes-settings.js?v=20261006-scroll-conteudo"></script>
-  <script src="assets/js/matrizes-data.js?v=20261006-scroll-conteudo"></script>
-  <script src="assets/js/matrizes-pages.js?v=20261006-scroll-conteudo"></script>
-  <script src="assets/js/matrizes-sidebar.js?v=20261006-scroll-conteudo-sidebar"></script>
-  <script src="assets/js/matrizes-formulas.js?v=20261006-scroll-conteudo"></script>
-  <script src="assets/js/matrizes-app.js?v=20261006-scroll-conteudo"></script>
+  <script src="assets/js/config.js?v=20261006-rotulos"></script>
+  <script src="assets/js/api.js?v=20261006-rotulos"></script>
+  <script src="assets/js/theme.js?v=20261006-rotulos"></script>
+  <script src="assets/js/matrizes-settings.js?v=20261006-rotulos"></script>
+  <script src="assets/js/matrizes-data.js?v=20261006-rotulos"></script>
+  <script src="assets/js/matrizes-pages.js?v=20261006-rotulos"></script>
+  <script src="assets/js/matrizes-sidebar.js?v=20261006-rotulos-sidebar"></script>
+  <script src="assets/js/matrizes-formulas.js?v=20261006-rotulos"></script>
+  <script src="assets/js/matrizes-chart-style.js?v=20261006-rotulos"></script>
+  <script src="assets/js/matrizes-app.js?v=20261006-rotulos"></script>
 </body>
 </html>
 `,'utf8');
