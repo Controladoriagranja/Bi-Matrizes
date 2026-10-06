@@ -87,3 +87,17 @@ test('Recria sempre apresenta domínio de 1 a 22, sem inventar medições ausent
   assert.equal(groups[14][1][0],row);assert.equal(groups[0][1].length,0);
   assert.equal(D.recria(groups[0][1],'femeas').weight,null);
 });
+
+test('cards de Recria consolidam medições de todo o período inclusive com última semana sem pesagem',()=>{
+  const rows=[{raw:{cab_femeas:100,saldo_femea:90,viab_fem:90,unif_femeas:80,ps_medio_femeas:500,consu_ali_gr_femeas:40}},
+    {raw:{cab_femeas:300,saldo_femea:270,viab_fem:98,unif_femeas:90,ps_medio_femeas:700,consu_ali_gr_femeas:60}},
+    {raw:{cab_femeas:100,saldo_femea:0,viab_fem:95,unif_femeas:0,ps_medio_femeas:0,consu_ali_gr_femeas:0}}];
+  const result=D.recria(rows,'femeas');near(result.viab,95.8);near(result.uniform,87.5);near(result.weight,650);near(result.gad,55);
+});
+
+test('cards têm média simples própria, independentemente da quantidade de aves',()=>{
+  const rows=[{raw:{viab_fem:90,unif_femeas:80,ps_medio_femeas:500,consu_ali_gr_femeas:40,cab_femeas:100,saldo_femea:90}},
+    {raw:{viab_fem:98,unif_femeas:90,ps_medio_femeas:700,consu_ali_gr_femeas:60,cab_femeas:300,saldo_femea:270}},
+    {raw:{viab_fem:null,unif_femeas:0,ps_medio_femeas:0,consu_ali_gr_femeas:0}}];
+  const result=D.simpleIndicators(rows,'recria');near(result.viab,94);near(result.uniform,85);near(result.weight,600);near(result.gad,50);
+});

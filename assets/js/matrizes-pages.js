@@ -51,7 +51,7 @@
         {id:'mortalidade-final',title:'Mortalidade final · 15 a 21 dias',axis:'Semana',series:[series('final','Final'),series('finalStd','STD','line',{dash:true,color:1})]}
       ],kpis:[['unhatched','Não eclodidos','%'],['infertile','Infertilidade','%'],['contaminated','Contaminados','%'],['final','Mortalidade final','%']]}
   };
-  pages.recria.charts.forEach(chart=>{chart.lifeWeeks={start:1,end:22};});
+  pages.recria.charts.forEach(chart=>{chart.lifeWeeks={start:1,end:22};if(chart.id==='viabilidade')chart.series.find(series=>series.key==='viabDiff').unit='%';});
   // Os prints representam seções de quatro telas, não páginas independentes.
   const productionCurves=pages['producao-curvas'].charts.map(chart=>({...chart,group:chart.group||'date',section:'Curvas de produção'}));
   pages.producao.extraTable='acerto_produtor_producao';

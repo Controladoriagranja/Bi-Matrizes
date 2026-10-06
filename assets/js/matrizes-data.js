@@ -178,11 +178,25 @@
     result.contaminatedStd=weighted(rows,r=>n(r.raw.std_9)!=null&&n(r.raw.std_10)!=null?n(r.raw.std_9)+n(r.raw.std_10):null,sample);
     return result;
   }
+  function mean(values) {
+    const valid=values.map(n).filter(value=>value!=null);
+    return valid.length?valid.reduce((total,value)=>total+value,0)/valid.length:null;
+  }
+  // Regras dos cards deste relatório. Não dependem do módulo Zootécnico.
+  function simpleIndicators(rows,kind,sex='femeas') {
+    if(kind==='recria') {
+      const fields=recriaFields(sex);
+      return Object.fromEntries(['viab','uniform','weight','gad'].map(key=>[key,mean(rows.map(row=>key==='viab'?n(row.raw[fields[key]]):positive(row.raw[fields[key]])))]));
+    }
+    const calculate={production,hatch,incubation,embryo,curve}[kind];
+    const values=rows.map(row=>calculate([row]));
+    return Object.fromEntries([...new Set(values.flatMap(value=>Object.keys(value)))].map(key=>[key,mean(values.map(value=>value[key]))]));
+  }
   function preferDaily(rows) {
     const dailyLots = new Set(rows.filter(r=>/di.rio/i.test(text(r.raw.tipo_movto))).map(r=>JSON.stringify([r.company,r.unit,r.lot,r.house])));
     return rows.filter(r=>!dailyLots.has(JSON.stringify([r.company,r.unit,r.lot,r.house]))||/di.rio/i.test(text(r.raw.tipo_movto)));
   }
-  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,previousTwoMonths,lifeWeekGroups,chartGroups,recriaFields,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
+  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,previousTwoMonths,lifeWeekGroups,chartGroups,recriaFields,mean,simpleIndicators,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
   else root.MatrizesData=api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

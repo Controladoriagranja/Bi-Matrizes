@@ -76,3 +76,7 @@ Gráficos agrupados por semana do calendário usam os oito últimos grupos reais
 O botão Mostrar Todas as Semanas retira o limite de oito grupos sem alterar o período nem os filtros de negócio; o mesmo botão permite voltar ao limite.
 
 Os quatro gráficos de Recria têm domínio explícito de semanas de vida 1 a 22. Semanas sem medições nos filtros ficam sem valores (não são convertidas em zero). Curvas de Produção e Incubatório por idade mantêm os domínios próprios da planilha, sem serem forçadas para 1 a 22.
+
+Os quatro cards de Recria consolidam todas as linhas que atendem aos filtros. Viabilidade é ponderada pelas aves alojadas; Uniformidade, Peso Médio e GAD pelo saldo de aves, usando apenas medições válidas para cada indicador. Não usam apenas a última semana de vida.
+
+Atualização: todos os cards usam média aritmética simples dos valores válidos por registro filtrado (soma ÷ contagem). Esta regra substitui a ponderação dos cards descrita acima; os gráficos continuam com suas regras próprias. O botão ƒx em cada card exibe campo/fórmula por registro, fonte, quantidade de valores válidos e cálculo do contexto atual. Implementação isolada em simpleIndicators e matrizes-formulas.js, sem dependência das contas do Zootécnico.

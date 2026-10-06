@@ -94,8 +94,8 @@ body.mz-expanded { overflow:hidden; }
 .mz-receipts { margin-top:18px; }
 .mz-comparison { margin-top:16px; }
 button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
-@media (max-width:1100px) { .mz-topbar { gap:14px; padding:12px 18px; } .mz-brand img { width:120px; } .mz-module-nav a { padding:10px; font-size:13px; } .mz-update { display:none; } .mz-layout { padding:20px 18px; gap:16px; grid-template-columns:190px minmax(0,1fr); } .mz-embryo .mz-charts { grid-template-columns:repeat(2,minmax(0,1fr)); } .mz-kpi { padding:13px; } .mz-kpi strong { font-size:25px; } }
-@media (max-width:780px) { .mz-topbar { flex-wrap:wrap; } .mz-module-nav { order:3; flex-basis:100%; } .mz-top-actions { margin-left:auto; } .mz-layout { grid-template-columns:minmax(0,1fr); padding:18px 12px; } .mz-filters { position:static; max-height:none; padding:12px; } .mz-filters h2 { margin:0; } .mz-filter-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px; } .mz-filter { margin:0; } .mz-filter-toggle { display:inline-flex !important; } .mz-filters-head { display:flex; justify-content:space-between; align-items:center; } .mz-filter-fields.hidden-mobile { display:none; } .mz-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .mz-charts,.mz-embryo .mz-charts { grid-template-columns:minmax(0,1fr); } .mz-heading h1 { font-size:30px; } .mz-heading { align-items:start; } .mz-heading p { font-size:13px; } .mz-chart-card.expanded { inset:8px; } .mz-footer { flex-direction:column; } }
+@media (max-width:1100px) { .mz-topbar { gap:14px; padding:12px 18px; } .mz-brand img { width:120px; } .mz-module-nav a { padding:10px; font-size:13px; }  .mz-layout { padding:20px 18px; gap:16px; grid-template-columns:190px minmax(0,1fr); } .mz-embryo .mz-charts { grid-template-columns:repeat(2,minmax(0,1fr)); } .mz-kpi { padding:13px; } .mz-kpi strong { font-size:25px; } }
+@media (max-width:780px) { .mz-topbar { flex-wrap:wrap; } .mz-module-nav { order:3; flex-basis:100%; } .mz-top-actions { margin-left:auto; } .mz-layout { grid-template-columns:minmax(0,1fr); padding:18px 12px; } .mz-filters { position:static; max-height:none; padding:12px; } .mz-filters h2 { margin:0; } .mz-filter-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px; } .mz-filter { margin:0; }  .mz-filters-head { display:flex; justify-content:space-between; align-items:center; }  .mz-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .mz-charts,.mz-embryo .mz-charts { grid-template-columns:minmax(0,1fr); } .mz-heading h1 { font-size:30px; } .mz-heading { align-items:start; } .mz-heading p { font-size:13px; } .mz-chart-card.expanded { inset:8px; } .mz-footer { flex-direction:column; } }
 .mz-filter-toggle { display:none; }
 @media (max-width:780px) { .has-side-nav .mz-topbar { min-height:64px; padding-left:62px; gap:10px; } .mz-breadcrumb { gap:7px; font-size:12px; flex-wrap:wrap; } }
 
@@ -104,3 +104,14 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 
 .mz-week-controls { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin:18px 0; font-size:13px; color:var(--muted-foreground); }
 .mz-week-controls[hidden] { display:none; }
+
+.mz-topbar { position:sticky; top:0; z-index:100; }
+@media (min-width:781px) { .mz-filters { top:100px; max-height:calc(100vh - 120px); } }
+@media (max-width:780px) { .mz-update { display:block; font-size:10px; } .mz-update strong { font-size:11px; } .mz-topbar { gap:8px; } }
+
+.mz-kpi { position:relative; padding-right:45px; }
+.mz-formula-button { position:absolute; top:9px; right:9px; }
+.mz-formula-dialog { width:min(620px,calc(100vw - 28px)); max-height:85vh; overflow:auto; padding:24px; border:1px solid var(--border); border-radius:var(--radius); background:var(--card); color:var(--foreground); font-family:"Geist Variable",sans-serif; }
+.mz-formula-dialog::backdrop { background:#0008; }
+.mz-formula-dialog h2 { margin:0 0 15px; font-size:20px; }
+.mz-formula-dialog p { font-size:14px; line-height:1.6; }

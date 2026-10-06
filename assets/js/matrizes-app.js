@@ -68,10 +68,10 @@
     $('matrizesApp').innerHTML=`
       <header class="mz-topbar">
         <div class="mz-breadcrumb"><span>Matrizes</span><span aria-hidden="true">/</span><strong>${page.module}</strong></div>
-        <div class="mz-top-actions"><div class="mz-update">Última carga<strong id="ultimaAtualizacao">—</strong></div><button class="mz-button" data-theme-toggle aria-label="Alternar tema" title="Alternar tema"><span data-theme-icon>☾</span></button></div>
+        <div class="mz-top-actions"><div class="mz-update">Última atualização<strong id="ultimaAtualizacao">—</strong></div><button class="mz-button" data-theme-toggle aria-label="Alternar tema" title="Alternar tema"><span data-theme-icon>☾</span></button></div>
       </header>
       <div class="mz-layout">
-        <aside class="mz-filters" aria-label="Filtros dos indicadores"><div class="mz-filters-head"><h2>Filtros</h2><button id="toggleFilters" class="mz-button mz-filter-toggle" aria-expanded="false" aria-controls="filterFields">Mostrar</button></div><div class="mz-filter-fields hidden-mobile" id="filterFields"></div></aside>
+        <aside class="mz-filters" aria-label="Filtros dos indicadores"><div class="mz-filters-head"><h2>Filtros</h2></div><div class="mz-filter-fields" id="filterFields"></div></aside>
         <main class="mz-main ${pageId==='embrio'?'mz-embryo':''}">
           <div class="mz-heading"><div><div class="mz-eyebrow">Matrizes e incubatório</div><h1>${page.title}</h1><p>${page.subtitle}</p></div><button id="refresh" class="mz-button">↻ Atualizar</button></div>
           <div class="mz-status" role="status" aria-live="polite"><strong id="loadStatus">Aguardando consulta</strong><span id="recordCount">—</span></div>
@@ -86,6 +86,7 @@
         </main>
       </div>`;
     if(window.ThemeManager)document.querySelector('[data-theme-icon]').textContent=ThemeManager.get()==='dark'?'☀':'☾';
+    $('kpis').addEventListener('click',event=>{const button=event.target.closest('[data-formula]');if(button)MatrizesFormulaUI.open({key:button.dataset.formula,page,sex:state.sex,rows:filtered(state.rows),value:D.simpleIndicators(filtered(state.rows),page.calc,state.sex)[button.dataset.formula]});});
     $('refresh').addEventListener('click',load);
     $('toggleWeeks').addEventListener('click',()=>{
       state.weekLimit=state.weekLimit==null?8:null;
@@ -93,11 +94,6 @@
       $('toggleWeeks').setAttribute('aria-pressed',String(state.weekLimit==null));
       $('weekLimitCaption').textContent=state.weekLimit==null?'Todas as Semanas do Período Selecionado':'Até 8 Semanas por Gráfico';
       renderCharts();
-    });
-    $('toggleFilters').addEventListener('click',()=>{
-      const collapsed=$('filterFields').classList.toggle('hidden-mobile');
-      $('toggleFilters').setAttribute('aria-expanded',String(!collapsed));
-      $('toggleFilters').textContent=collapsed?'Mostrar':'Ocultar';
     });
     document.querySelectorAll('[data-table]').forEach(button=>button.addEventListener('click',()=>{
       const hidden=$(`table-${button.dataset.table}`).classList.toggle('hidden');button.setAttribute('aria-expanded',String(!hidden));
@@ -171,12 +167,8 @@
     $('clearFilters').addEventListener('click',()=>{state.filters={};state.start=defaultPeriod.start;state.end=defaultPeriod.end;saveFilters();render();});
   }
   function renderKpis(rows) {
-    let data,context='Consolidado do período';
-    if(page.calc==='recria') {
-      const latest=[...D.group(rows,r=>r.age)].pop();
-      data=calc(latest?.[1]||[]);context=latest?`Semana de vida ${latest[0]}`:'Sem registros';
-    } else data=calc(rows);
-    $('kpis').innerHTML=page.kpis.map(([key,label,unit])=>`<article class="mz-kpi"><span>${label}</span><strong>${format(data[key],unit,unit==='g'?0:2)}</strong><small>${data[key]==null?'Sem medição disponível':context}</small></article>`).join('');
+    const data=D.simpleIndicators(rows,page.calc,state.sex),context='Média simples do período selecionado';
+    $('kpis').innerHTML=page.kpis.map(([key,label,unit])=>`<article class="mz-kpi"><button type="button" class="mini-button mz-formula-button" data-formula="${key}" aria-label="Ver fórmula de ${label}" title="Ver fórmula"><span class="formula-fx">ƒx</span></button><span>${label}</span><strong>${format(data[key],unit,unit==='g'?0:2)}</strong><small>${data[key]==null?`Sem medição disponível · ${context}`:context}</small></article>`).join('');
   }
   function colors() {
     const css=getComputedStyle(document.documentElement);
@@ -190,16 +182,16 @@
     if(!chart){chart=echarts.init($(`chart-${spec.id}`),null,{renderer:'svg'});state.charts.set(spec.id,chart);}
     const series=spec.series.map((s,i)=>({
       name:s.name,type:s.type,data:data.map(p=>p[s.key]??null),yAxisIndex:s.axis||0,
-      stack:s.stack,connectNulls:false,symbolSize:4,showSymbol:data.length<24,
+      stack:s.stack,smooth:s.type==='line'?0.3:false,connectNulls:false,symbolSize:4,showSymbol:data.length<24,
       barMaxWidth:24,itemStyle:{color:c.series[s.color??i%c.series.length],borderRadius:s.stack?0:[3,3,0,0]},
       lineStyle:{width:2,type:s.dash?'dashed':'solid'},
-      emphasis:{focus:'series'},labelLayout:{hideOverlap:true},label:{show:s.type==='bar'&&data.length<=8,position:s.stack?'inside':'top',fontSize:11,formatter:p=>p.value==null?'':Number(p.value).toLocaleString('pt-BR',{maximumFractionDigits:1})}
+      emphasis:{focus:'series'},labelLayout:{hideOverlap:pageId!=='recria'},label:{show:s.type==='bar'&&(pageId==='recria'||data.length<=8),position:pageId==='recria'?'inside':s.stack?'inside':'top',rotate:pageId==='recria'?90:0,color:pageId==='recria'?'#fff':undefined,fontSize:pageId==='recria'?10:11,formatter:p=>p.value==null?'':Number(p.value).toLocaleString('pt-BR',{maximumFractionDigits:1})}
     }));
     const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,formatter:v=>format(v,unit,unit==='ovos'||unit==='g'?0:1)},splitLine:{lineStyle:{color:c.grid}}};
     chart.setOption({
       animationDuration:250,color:c.series,textStyle:{fontFamily:'Geist Variable, Geist, sans-serif',color:c.text},
       tooltip:{trigger:'axis',backgroundColor:c.bg,borderColor:c.grid,textStyle:{color:c.fg,fontSize:13},valueFormatter:(value)=>value==null?'Sem medição':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2})},
-      legend:{bottom:0,type:'scroll',textStyle:{color:c.text,fontSize:11},itemWidth:13,itemHeight:7},
+      legend:{bottom:0,type:'scroll',formatter:name=>{const series=spec.series.find(item=>item.name===name);return pageId==='recria'?`${name} (${series?.unit||unit})`:name;},textStyle:{color:c.text,fontSize:11},itemWidth:13,itemHeight:7},
       grid:{top:28,left:12,right:hasSecond?12:18,bottom:data.length>24?66:38,containLabel:true},
       xAxis:{type:'category',data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,hideOverlap:!spec.lifeWeeks,interval:spec.lifeWeeks?0:'auto'}},
       yAxis:hasSecond?[axis,{...axis,position:'right',splitLine:{show:false},axisLabel:{...axis.axisLabel,formatter:v=>format(v,spec.series.find(s=>s.axis===1).unit||'pp',1)}}]:axis,
@@ -298,7 +290,7 @@
       }
 
       const latestLoad=[...state.rows,...state.extra].map(r=>D.text(r.raw.carregado_em)).filter(Boolean).sort().at(-1);
-      $('ultimaAtualizacao').textContent=latestLoad?`${dayLabel(latestLoad.slice(0,10))} · ${latestLoad.slice(11,16)}`:'Não informada';
+      $('ultimaAtualizacao').textContent=latestLoad?`${dayLabel(latestLoad.slice(0,10))} · ${latestLoad.slice(11,19)}`:'Não informada';
       state.complete=true;$('loadStatus').textContent='Dados carregados · histórico completo';render();
     } catch(error) {
       if(state.controller!==controller)return;
