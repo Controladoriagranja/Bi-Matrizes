@@ -53,10 +53,12 @@ try {
   const files=['index.html','producao.html','incubatorio.html','embrio.html'];
   for(const file of files) {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
-    await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('histórico completo'));
+    await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('completo')).catch(async error=>{throw new Error(`${file}: ${await page.locator('#error').textContent()} / ${errors.join(' | ')} / ${error.message}`);});
     assert.equal(await page.locator('#error').isVisible(),false);
     await page.locator('.mz-chart').first().evaluate(el=>{
       const option=echarts.getInstanceByDom(el).getOption();
+      if(option.tooltip[0].trigger!=='axis')throw new Error('Tooltip incompleto');
+      if(option.series.some(item=>item.data.some(value=>value!==null&&typeof value!=='number')))throw new Error('Valores alterados');
       const mixed=option.series.some(item=>item.type==='bar')&&option.series.some(item=>item.type==='line');
       for(const series of option.series){
         if(series.type==='line'&&mixed){if(series.label.show||series.lineStyle.width<3)throw new Error('Linha mista sem destaque');}
@@ -100,6 +102,11 @@ try {
     await page.locator('[data-expand]').first().click();assert.equal(await page.locator('.mz-chart-card.expanded').count(),1);
     await page.keyboard.press('Escape');assert.equal(await page.locator('.mz-chart-card.expanded').count(),0);
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-desktop.png')),fullPage:true});
+    await page.locator('[data-theme-toggle]').click();
+    assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
+    await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-desktop-dark.png')),fullPage:true});
+    await page.locator('[data-theme-toggle]').click();
+
     if(file==='producao.html') {
       const before=await page.locator('#recordCount').textContent();
       assert.equal(await page.locator('#startDate').inputValue(),'2026-08-01');
@@ -141,6 +148,13 @@ try {
     await page.locator('.mz-layout').evaluate(el=>el.scrollTop=500);
     assert.equal(await page.locator('.mz-topbar').evaluate(el=>el.getBoundingClientRect().top),0);
     await page.locator('.mz-layout').evaluate(el=>el.scrollTop=0);
+    await page.waitForTimeout(180);
+    await page.locator('.mz-chart-card').first().screenshot({path:path.join(screenshotDir,file.replace('.html','-chart-mobile-light.png'))});
+    await page.locator('[data-theme-toggle]').click();
+    assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
+    await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-mobile-dark.png')),fullPage:true});
+    await page.locator('.mz-chart-card').first().screenshot({path:path.join(screenshotDir,file.replace('.html','-chart-mobile-dark.png'))});
+    await page.locator('[data-theme-toggle]').click();
     await page.locator('.side-nav-rail').click();
     assert.equal(await page.locator('.side-nav-panel').getAttribute('aria-hidden'),'false');
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-menu-mobile.png')),fullPage:true});

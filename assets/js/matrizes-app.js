@@ -103,7 +103,8 @@
     }));
     document.querySelectorAll('[data-expand]').forEach(button=>button.addEventListener('click',()=>expand(button.dataset.expand)));
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExpanded();});
-    window.addEventListener('resize',()=>state.charts.forEach(chart=>chart.resize()));
+    let resizeTimer;
+    window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{state.charts.forEach(chart=>chart.resize());renderCharts();},120);});
     document.addEventListener('dashboard:theme-changed',()=>renderCharts());
 
   }
@@ -112,11 +113,11 @@
       card.classList.remove('expanded');const button=card.querySelector('[data-expand]');
       button.textContent='⤢';button.setAttribute('aria-expanded','false');button.setAttribute('aria-label',`Ampliar ${card.querySelector('h2').textContent}`);button.focus();
     });
-    document.body.classList.remove('mz-expanded');state.charts.forEach(chart=>chart.resize());
+    document.body.classList.remove('mz-expanded');state.charts.forEach(chart=>chart.resize());renderCharts();
   }
   function expand(id) {
     const card=$(`card-${id}`),wasOpen=card.classList.contains('expanded');closeExpanded();
-    if(!wasOpen){card.classList.add('expanded');document.body.classList.add('mz-expanded');const button=card.querySelector('[data-expand]');button.textContent='×';button.setAttribute('aria-expanded','true');button.setAttribute('aria-label','Fechar gráfico ampliado');state.charts.get(id)?.resize();}
+    if(!wasOpen){card.classList.add('expanded');document.body.classList.add('mz-expanded');const button=card.querySelector('[data-expand]');button.textContent='×';button.setAttribute('aria-expanded','true');button.setAttribute('aria-label','Fechar gráfico ampliado');state.charts.get(id)?.resize();renderCharts();}
   }
   function filterChoice(key,rows) {
     const values=[...new Set(rows.map(r=>String(r[key]??'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
@@ -183,7 +184,7 @@
     const hasSecond=spec.series.some(s=>s.axis===1);
     let chart=state.charts.get(spec.id);
     if(!chart){chart=echarts.init($(`chart-${spec.id}`),null,{renderer:'svg'});state.charts.set(spec.id,chart);}
-    const series=MatrizesChartStyle.series(spec,data,c,$(`chart-${spec.id}`).clientWidth);
+    const series=MatrizesChartStyle.series(spec,data,c,$(`chart-${spec.id}`).clientWidth,$(`chart-${spec.id}`).clientHeight);
     const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,formatter:v=>format(v,unit,unit==='ovos'||unit==='g'?0:1)},splitLine:{lineStyle:{color:c.grid}}};
     chart.setOption({
       animationDuration:250,color:c.series,textStyle:{fontFamily:'Geist Variable, Geist, sans-serif',color:c.text},
