@@ -63,6 +63,19 @@
   pages.incubatorio.title='Incubatório';
   pages.incubatorio.subtitle='Eclosão, descarte, faixas etárias, incubação e estoque dos ovos.';
   pages.incubatorio.charts=[...pages.incubatorio.charts.map(chart=>({...chart,section:'Eclosão e descarte'})),...hatchHistory,...incubationCharts];
+  // Tipos de apresentação independentes dos cálculos.
+  for(const page of [pages.recria,pages.producao,pages.incubatorio,pages.embrio]) {
+    for(const chart of page.charts) {
+      const numeric=chart.id==='peso'||chart.id==='gad'||chart.calc==='incubation';
+      chart.unit=numeric?chart.unit:'%';
+      chart.digits=chart.id==='gad'?0:numeric?2:1;
+      chart.series.forEach(item=>{
+        item.unit=chart.id==='peso'&&item.key==='weightDiff'?'%':numeric?chart.unit:'%';
+        item.digits=chart.id==='peso'&&item.key==='weightDiff'?1:chart.digits;
+      });
+      if(chart.calc==='incubation')chart.labels={...chart.labels,maxLabels:24};
+    }
+  }
   const connectors=new Set(['de','da','do','das','dos','e','ou','por','na','no','nas','nos','em','a','até']);
   const titleCase=value=>value.split(' ').map((word,index)=>index&&connectors.has(word.toLocaleLowerCase('pt-BR'))?word.toLocaleLowerCase('pt-BR'):word.charAt(0).toLocaleUpperCase('pt-BR')+word.slice(1)).join(' ');
   for(const page of Object.values(pages)) {

@@ -1,4 +1,4 @@
-# Indicadores de Matrizes
+﻿# Indicadores de Matrizes
 
 As quatro telas (Recria, Produção, Incubatório e Embriodiagnóstico) consultam o Worker da CENTRAL, enviando `Authorization: Bearer` com o token de `sessionStorage.granjabi_auth_token`. Os sete prints são seções dessas telas. Nenhuma credencial Basic é incluída no frontend. As rotas são `/api/portal/matrizes/dados/{tabela}`, com `pagina` e `tamanho`, conforme as respostas fornecidas.
 
@@ -97,4 +97,8 @@ Os textos são desenhados em uma camada gráfica silenciosa acima das linhas, co
 
 Clicar num ponto/coluna aplica uma seleção temporária pela dimensão do gráfico (semana de vida, semana do calendário, data, mês ou ano) a todos os gráficos e cards da tela. Clicar numa área vazia ou em Limpar seleção restaura os filtros anteriores. A seleção não modifica os dados nem substitui os filtros persistidos da sessão.
 
-Aproveitamento na Granja usa a convenção visual solicitada de barras 70/30 para destacar os dois segmentos. Esta proporção é declarada no subtítulo e não representa os percentuais reais. Os rótulos, tooltip e tabela Dados preservam aproveitamento e perdas calculados; a linha de meta continua com seu valor real. Colunas simples também admitem rótulos internos se houver espaço; linhas usam candidatos intermediários espaçados horizontalmente. O tooltip informa a unidade de cada série, incluindo % e pp conforme a medida.
+Aproveitamento na Granja usa a convenção visual solicitada de barras 70/30 para destacar os dois segmentos. Esta proporção é declarada no subtítulo e não representa os percentuais reais. Os rótulos, tooltip e tabela Dados preservam aproveitamento e perdas calculados; a linha de meta continua com seu valor real. Colunas simples usam rótulos acima; linhas usam candidatos intermediários espaçados horizontalmente. O tooltip informa a unidade de cada série, incluindo % e pp conforme a medida.
+
+Colunas simples/agrupadas usam rótulos acima; segmentos empilhados mantêm rótulos internos quando cabem. Linhas puras podem afastar rótulos e usar uma haste fina na cor da série, contornando os rótulos próximos. A densidade considera largura e altura, aumentando progressivamente em expansão; gráficos mistos continuam sem textos nas linhas. A coluna de filtros mantém sua largura atual de 215 px (190 px no breakpoint intermediário).
+
+`nTipos de apresentação: percentuais usam % nos eixos, rótulos, tooltip e tabela. Peso médio e STD de peso usam duas casas decimais (g); diferença de peso permanece percentual. GAD e STD de GAD são exibidos sem casas decimais (g/ave/dia). Incubação e estoque usam duas casas decimais, preservando ovos/dias como unidades; possuem orçamento ampliado de rótulos. O arredondamento é apenas visual, sem mudar valores ou cálculos. Aproveitamento mantém a proporção visual 70/30.

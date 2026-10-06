@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+﻿import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import assert from 'node:assert/strict';
@@ -55,6 +55,7 @@ try {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
     await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('completo')).catch(async error=>{throw new Error(`${file}: ${await page.locator('#error').textContent()} / ${errors.join(' | ')} / ${error.message}`);});
     assert.equal(await page.locator('#error').isVisible(),false);
+    await page.waitForFunction(()=>echarts.getInstanceByDom(document.querySelector('.mz-chart'))?.getOption().graphic?.[0]?.elements?.some(item=>item.type==='text'&&item.z>5)).catch(()=>{throw new Error('Rotulos ausentes em '+file);});
     await page.locator('.mz-chart').first().evaluate(el=>{
       const option=echarts.getInstanceByDom(el).getOption();
       if(!option.graphic?.[0]?.elements?.some(item=>item.type==='text'&&item.z>5))throw new Error('Camada de rotulos vazia');
@@ -111,6 +112,14 @@ try {
     await page.locator('[data-table]').first().click();
     await page.locator('[data-expand]').first().click();assert.equal(await page.locator('.mz-chart-card.expanded').count(),1);
     await page.keyboard.press('Escape');assert.equal(await page.locator('.mz-chart-card.expanded').count(),0);
+    if(file==='index.html'){
+      await page.waitForFunction(()=>echarts.getInstanceByDom(document.querySelector('.mz-chart'))?.getOption().graphic?.[0]?.elements?.some(item=>item.type==='text'&&item.z>5)).catch(()=>{throw new Error('Rotulos ausentes em '+file);});
+    await page.locator('.mz-chart').first().evaluate(el=>{const chart=echarts.getInstanceByDom(el);chart.setOption({dataZoom:[{type:'inside',start:0,end:100}]});chart.dispatchAction({type:'dataZoom',start:40,end:70});});
+      await page.waitForTimeout(40);
+      assert.equal(await page.locator('.mz-chart').first().evaluate(el=>echarts.getInstanceByDom(el).getOption().series[0].data.length),22);
+      await page.locator('.mz-chart').first().evaluate(el=>echarts.getInstanceByDom(el).dispatchAction({type:'dataZoom',start:0,end:100}));
+    }
+
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-desktop.png')),fullPage:true});
     await page.locator('[data-theme-toggle]').click();
     assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
@@ -209,3 +218,4 @@ try {
   assert.equal(await brokenPage.locator('.mz-kpi strong').first().textContent(),'—');await broken.close();
   console.log(`PASS: 4 telas desktop/mobile, menu lateral e navegação, tema, filtros, dados, ampliação, 6 tabelas com todas as páginas, sessão ausente e paginação incompleta. ${examplePaths.length?'Exemplos reais dos anexos.':'Dados sintéticos.'}`);
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
+

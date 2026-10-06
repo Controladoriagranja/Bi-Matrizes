@@ -36,3 +36,14 @@ test('preenche espaço com intermediários distribuídos, sem repetir STD consta
   const data=Array.from({length:22},()=>({actual:95,actualStd:80}));const labels=L.selectLabels(spec,data,900);
   assert.ok(labels[0].size>2);assert.ok([...labels[0]].some(index=>index>5&&index<16));assert.ok(labels[1].size<=1);
 });
+
+test('área ampliada permite densidade progressivamente maior',()=>{
+  assert.ok(L.getResponsiveLabelDensity(22,1200,650)>L.getResponsiveLabelDensity(22,500,285));
+  assert.ok(L.getResponsiveLabelDensity(22,600,600)>L.getResponsiveLabelDensity(22,600,285));
+});
+
+test('zoom recalcula rótulos no intervalo visível sem mudar valores',()=>{
+  const spec={series:[{key:'actual',name:'Real',type:'line'}],labels:{visibleStart:10,visibleEnd:17}};
+  const data=Array.from({length:52},(_,i)=>({actual:50+i*.1}));const before=JSON.stringify(data);
+  const labels=L.selectLabels(spec,data,700,400)[0];assert.ok(labels.size>=3);for(const index of labels)assert.ok(index>=10&&index<=17);assert.equal(JSON.stringify(data),before);
+});
