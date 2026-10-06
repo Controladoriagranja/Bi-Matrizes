@@ -105,8 +105,9 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 .mz-week-controls { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin:18px 0; font-size:13px; color:var(--muted-foreground); }
 .mz-week-controls[hidden] { display:none; }
 
-.mz-topbar { position:sticky; top:0; z-index:100; }
-@media (min-width:781px) { .mz-filters { top:100px; max-height:calc(100vh - 120px); } }
+.mz-topbar { position:fixed; inset:0 0 auto 0; z-index:100; }
+#matrizesApp { padding-top:var(--mz-header-height,74px); }
+@media (min-width:781px) { .mz-filters { top:calc(var(--mz-header-height,74px) + 20px); max-height:calc(100vh - var(--mz-header-height,74px) - 40px); } }
 @media (max-width:780px) { .mz-update { display:block; font-size:10px; } .mz-update strong { font-size:11px; } .mz-topbar { gap:8px; } }
 
 .mz-kpi { position:relative; padding-right:45px; }

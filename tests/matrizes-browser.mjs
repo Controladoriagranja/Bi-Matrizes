@@ -75,6 +75,9 @@ try {
     } else assert.equal(await page.locator('#toggleWeeks').isVisible(),false);
     await page.locator('[data-formula]').first().click();assert.equal(await page.locator('.mz-formula-dialog').isVisible(),true);
     assert.match(await page.locator('.mz-formula-dialog').textContent(),/Média simples/);await page.keyboard.press('Escape');
+    await page.evaluate(()=>window.scrollTo(0,700));
+    assert.equal(await page.locator('.mz-topbar').evaluate(el=>el.getBoundingClientRect().top),0);
+    await page.evaluate(()=>window.scrollTo(0,0));
     const font=await page.locator('body').evaluate(el=>getComputedStyle(el).fontFamily);assert.match(font,/Geist Variable/);
     for(const selector of ['#clearFilters','.mz-chart-head h2','.mz-choice summary','.mz-chart svg text'])assert.match(await page.locator(selector).first().evaluate(el=>getComputedStyle(el).fontFamily),/Geist Variable/);
     await page.locator('.side-nav-rail').click();
@@ -124,7 +127,7 @@ try {
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${file}: overflow mobile`);
     assert.equal(await page.locator('#filterFields').isVisible(),true);
     assert.equal(await page.locator('#toggleFilters').count(),0);
-    assert.equal(await page.locator('.mz-topbar').evaluate(el=>getComputedStyle(el).position),'sticky');
+    assert.equal(await page.locator('.mz-topbar').evaluate(el=>getComputedStyle(el).position),'fixed');
     await page.locator('.side-nav-rail').click();
     assert.equal(await page.locator('.side-nav-panel').getAttribute('aria-hidden'),'false');
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-menu-mobile.png')),fullPage:true});

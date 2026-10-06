@@ -85,6 +85,9 @@
           <footer class="mz-footer"><span id="periodCaption">Selecione o contexto nos filtros.</span></footer>
         </main>
       </div>`;
+    const header=document.querySelector('.mz-topbar');
+    const resizeHeader=()=>document.documentElement.style.setProperty('--mz-header-height',`${header.getBoundingClientRect().height}px`);
+    new ResizeObserver(resizeHeader).observe(header);resizeHeader();
     if(window.ThemeManager)document.querySelector('[data-theme-icon]').textContent=ThemeManager.get()==='dark'?'☀':'☾';
     $('kpis').addEventListener('click',event=>{const button=event.target.closest('[data-formula]');if(button)MatrizesFormulaUI.open({key:button.dataset.formula,page,sex:state.sex,rows:filtered(state.rows),value:D.simpleIndicators(filtered(state.rows),page.calc,state.sex)[button.dataset.formula]});});
     $('refresh').addEventListener('click',load);
