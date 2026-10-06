@@ -1,5 +1,6 @@
 /* Componentes de Matrizes sobre a folha original do bi-zootecnico. */
-html { overflow-y:scroll; scrollbar-gutter:stable; }
+html { overflow:hidden; height:100%; }
+body.matrizes-page { height:100%; margin:0; overflow:hidden; }
 html:has(body.side-nav-open), html:has(body.mz-expanded) { overflow-y:hidden; }
 html, .mz-filters, .side-nav-panel { scrollbar-width:auto; scrollbar-color:var(--muted-foreground) var(--background); }
 html::-webkit-scrollbar, .mz-filters::-webkit-scrollbar, .side-nav-panel::-webkit-scrollbar { width:12px; }
@@ -106,8 +107,10 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 .mz-week-controls[hidden] { display:none; }
 
 .mz-topbar { position:fixed; inset:0 0 auto 0; z-index:100; }
-#matrizesApp { padding-top:var(--mz-header-height,74px); }
-@media (min-width:781px) { .mz-filters { top:calc(var(--mz-header-height,74px) + 20px); max-height:calc(100vh - var(--mz-header-height,74px) - 40px); } }
+#matrizesApp { height:100dvh; overflow:hidden; padding-top:var(--mz-header-height,74px); }
+.mz-layout { height:calc(100dvh - var(--mz-header-height,74px)); overflow-y:auto; overflow-x:hidden; scrollbar-gutter:stable; overscroll-behavior:contain; }
+body.mz-expanded .mz-layout, body.side-nav-open .mz-layout { overflow:hidden; }
+@media (min-width:781px) { .mz-filters { top:20px; max-height:calc(100vh - var(--mz-header-height,74px) - 40px); } }
 @media (max-width:780px) { .mz-update { display:block; font-size:10px; } .mz-update strong { font-size:11px; } .mz-topbar { gap:8px; } }
 
 .mz-kpi { position:relative; padding-right:45px; }

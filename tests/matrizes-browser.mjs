@@ -75,9 +75,10 @@ try {
     } else assert.equal(await page.locator('#toggleWeeks').isVisible(),false);
     await page.locator('[data-formula]').first().click();assert.equal(await page.locator('.mz-formula-dialog').isVisible(),true);
     assert.match(await page.locator('.mz-formula-dialog').textContent(),/Média simples/);await page.keyboard.press('Escape');
-    await page.evaluate(()=>window.scrollTo(0,700));
+    await page.evaluate(()=>document.querySelector('.mz-layout').scrollTop=700);
+    assert.ok(await page.locator('.mz-layout').evaluate(el=>el.scrollTop)>0,'O conteúdo realmente rolou');
     assert.equal(await page.locator('.mz-topbar').evaluate(el=>el.getBoundingClientRect().top),0);
-    await page.evaluate(()=>window.scrollTo(0,0));
+    await page.evaluate(()=>document.querySelector('.mz-layout').scrollTop=0);
     const font=await page.locator('body').evaluate(el=>getComputedStyle(el).fontFamily);assert.match(font,/Geist Variable/);
     for(const selector of ['#clearFilters','.mz-chart-head h2','.mz-choice summary','.mz-chart svg text'])assert.match(await page.locator(selector).first().evaluate(el=>getComputedStyle(el).fontFamily),/Geist Variable/);
     await page.locator('.side-nav-rail').click();
@@ -128,6 +129,9 @@ try {
     assert.equal(await page.locator('#filterFields').isVisible(),true);
     assert.equal(await page.locator('#toggleFilters').count(),0);
     assert.equal(await page.locator('.mz-topbar').evaluate(el=>getComputedStyle(el).position),'fixed');
+    await page.locator('.mz-layout').evaluate(el=>el.scrollTop=500);
+    assert.equal(await page.locator('.mz-topbar').evaluate(el=>el.getBoundingClientRect().top),0);
+    await page.locator('.mz-layout').evaluate(el=>el.scrollTop=0);
     await page.locator('.side-nav-rail').click();
     assert.equal(await page.locator('.side-nav-panel').getAttribute('aria-hidden'),'false');
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-menu-mobile.png')),fullPage:true});
@@ -139,6 +143,14 @@ try {
   }
   for(const table of tables.filter(table=>table!=='inc'))assert.ok(requests.some(r=>r.table===table&&r.number===3),`${table}: última página não consultada`);
   assert.deepEqual(errors,[],'Erros JavaScript no navegador');
+  const embeddedPage=await context.newPage();
+  await embeddedPage.goto(`${base}/index.html`);
+  await embeddedPage.setContent(`<div style="position:fixed;inset:20px;display:flex;flex-direction:column;overflow:hidden"><div style="height:36px;flex-shrink:0">CENTRAL</div><iframe src="${base}/producao.html" style="border:0;flex:1;width:100%;min-height:0"></iframe></div>`);
+  const report=embeddedPage.frameLocator('iframe');
+  await report.locator('#loadStatus').filter({hasText:'completo'}).waitFor({timeout:30000});
+  await report.locator('.mz-topbar').evaluate(el=>el.ownerDocument.querySelector('.mz-layout').scrollTop=900);
+  assert.equal(await report.locator('.mz-topbar').evaluate(el=>el.getBoundingClientRect().top),0,'Cabe?alho deve permanecer fixo dentro da CENTRAL');
+  await embeddedPage.close();
   await context.close();
   // Missing CENTRAL session must stop before any network request.
   const noAuth=await browser.newContext(),unauthPage=await noAuth.newPage();let unauthRequests=0;

@@ -137,7 +137,7 @@
   }
   function renderFilters() {
     const open=new Set([...document.querySelectorAll('[data-filter-choice][open]')].map(el=>el.dataset.filterChoice));
-    const scrolls=[document.scrollingElement,...document.querySelectorAll('.mz-filters,.mz-filter-fields,.mz-options')].map(el=>({el,key:el.closest('[data-filter-choice]')?.dataset.filterChoice,top:el.scrollTop}));
+    const scrolls=[document.scrollingElement,document.querySelector('.mz-layout'),...document.querySelectorAll('.mz-filters,.mz-filter-fields,.mz-options')].map(el=>({el,key:el.closest('[data-filter-choice]')?.dataset.filterChoice,top:el.scrollTop}));
     const active=document.activeElement;
     const focus=active?.matches('[data-filter]')?{key:active.dataset.filter,value:active.value}:null;
     const searches=Object.fromEntries([...document.querySelectorAll('[data-search]')].map(el=>[el.dataset.search,el.value]));
