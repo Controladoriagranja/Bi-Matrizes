@@ -101,3 +101,20 @@ test('cards têm média simples própria, independentemente da quantidade de ave
     {raw:{viab_fem:null,unif_femeas:0,ps_medio_femeas:0,consu_ali_gr_femeas:0}}];
   const result=D.simpleIndicators(rows,'recria');near(result.viab,94);near(result.uniform,85);near(result.weight,600);near(result.gad,50);
 });
+
+
+test('metas mensais reais: valores diferentes, ausência, inativos e virada de mês',()=>{
+  const metas=[{indicador_codigo:'ovos_cama',referencia_mes:'2026-10-01',valor_meta:3,ativo:true},
+    {indicador_codigo:'ovos_cama',referencia_mes:'2026-11-01',valor_meta:2.5,ativo:true},
+    {indicador_codigo:'ovos_cama',referencia_mes:'2026-12-01',valor_meta:9,ativo:false}];
+  assert.equal(D.monthlyTarget(metas,'ovos_cama','2026-10-20'),3);
+  assert.equal(D.monthlyTarget(metas,'ovos_cama','2026-11-20'),2.5);
+  assert.equal(D.monthlyTarget(metas,'ovos_cama','2026-12-01'),null);
+  assert.equal(D.monthlyTarget(metas,'ovos_cama','2027-10-01'),null);
+  assert.equal(D.monthlyTarget(metas,'outro','2026-10-01'),null);
+  assert.equal(D.monthlyTarget(metas,'ovos_cama',''),null);
+  assert.equal(D.monthlyTarget([{indicador_codigo:'ovos_cama',referencia_mes:'2026-10-01',valor_meta:0}],'ovos_cama','2026-10-20'),0);
+  const reference=D.periodReferenceDate([{date:'2026-11-01'},{date:'2026-10-31'}]);
+  assert.equal(reference,'2026-10-31');assert.equal(D.monthlyTarget(metas,'ovos_cama',reference),3);
+  assert.equal(D.monthlyTarget([...metas,{...metas[0],valor_meta:8}],'ovos_cama','2026-10-20'),null);
+});

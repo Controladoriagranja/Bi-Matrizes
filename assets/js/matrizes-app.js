@@ -7,7 +7,7 @@
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const filterLabels={year:'Ano',week:'Semana',farm:'Fazenda',lot:'Lote',house:'Galpão',lineage:'Linhagem',age:'Idade (semanas)',origin:'Origem',stage:'Estágio da incubadora',status:'Situação atual'};
-  const state={rows:[],extra:[],charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8,chartSelection:null};
+  const state={rows:[],extra:[],metas:[],metasError:'',charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8,chartSelection:null};
   const defaultPeriod=D.previousTwoMonths();
   state.start=defaultPeriod.start;state.end=defaultPeriod.end;
   const storageKey=`bi-matrizes-filtros-v3-${page.module}`;
@@ -63,7 +63,9 @@
     const key=spec.group||page.group;
     const weekly=key==='week';
     const groups=spec.lifeWeeks?D.lifeWeekGroups(rows,spec.lifeWeeks.start,spec.lifeWeeks.end):D.chartGroups(rows,key,weekly?state.weekLimit:null);
-    return groups.map(([value,items])=>({filterKey:key,filterValue:String(value),label:groupLabel(value,key),...calc(items,spec.calc||page.calc)}));
+    const referenceDates=spec.id==='cama'?new Map(D.group(state.rows,row=>groupValue(row,key)).map(([value,items])=>[String(value),D.periodReferenceDate(items)])):null;
+    return groups.map(([value,items])=>({filterKey:key,filterValue:String(value),label:groupLabel(value,key),...calc(items,spec.calc||page.calc),
+      ...(referenceDates?{bedStd:D.monthlyTarget(state.metas,'ovos_cama',referenceDates.get(String(value)))}:{})}));
   }
   function clearChartSelection() {
     if(!state.chartSelection)return;
@@ -311,16 +313,17 @@
     const dates=rows.map(r=>r.date).sort();
     $('periodCaption').textContent=dates.length?`Período: ${dayLabel(dates[0])} a ${dayLabel(dates.at(-1))}. Percentuais calculados pelas quantidades do período.`:'Sem registros no contexto selecionado.';
     const messages=[];
+    if(state.metasError)messages.push(`Meta / STD de ovos de cama indisponível: ${state.metasError}`);
     if(state.loaded&&page.extraTable==='incubacao'&&filtered(state.extra,true).some(r=>D.stockDays(r.raw.dias_estoque).length!==1))messages.push('Estoque médio indisponível nos períodos com várias idades de ovos na mesma linha. O mínimo e o máximo usam as idades informadas; a média exige a quantidade de ovos de cada idade.');
     if(state.loaded&&page.extraTable==='acerto_produtor_producao')messages.push('A curva por lote usa o histórico do Acerto do Produtor; o gráfico diário usa os registros de produção da granja. Selecione um lote para acompanhar sua curva individual.');
     $('notice').textContent=messages.join(' ');$('notice').classList.toggle('hidden',!messages.length);
 
   }
-  async function loadTable(table,signal,onProgress) {
+  async function loadTable(table,signal,onProgress,{transform=null,size=500}={}) {
     const endpoint=(APP_CONFIG.endpoints.matrizesDados||'/api/portal/matrizes/dados/')+encodeURIComponent(table);
     const records=[],ids=new Set();let total=null,pagesTotal=null,pageSize=null;
     async function fetchPage(pageNumber) {
-      const response=await apiGet(endpoint,{pagina:pageNumber,tamanho:500},{signal});
+      const response=await apiGet(endpoint,{pagina:pageNumber,tamanho:size},{signal});
       if(response.tabela!==table||!Array.isArray(response.dados))throw new Error(`Resposta inválida para a tabela ${table}.`);
       const count=Number(response.total),pages=Number(response.total_paginas);
       if(!Number.isSafeInteger(count)||count<0||!Number.isSafeInteger(pages)||pages<0||Number(response.pagina)!==pageNumber)throw new Error(`Paginação inválida em ${table}.`);
@@ -329,7 +332,7 @@
       if(total>0&&!response.dados.length)throw new Error(`Página incompleta em ${table}.`);
       for(const row of response.dados){if(row.id!=null){if(ids.has(String(row.id)))throw new Error(`Registros repetidos em ${table}.`);ids.add(String(row.id));}records.push(row);}
     }
-    const prepared=()=>enrich(D.prepare(table,records)).filter(row=>pageId!=='producao'||row.year!=='2025');
+    const prepared=()=>transform?transform(records):enrich(D.prepare(table,records)).filter(row=>pageId!=='producao'||row.year!=='2025');
     await fetchPage(1);
     if(pagesTotal>1)await fetchPage(pagesTotal);
     onProgress?.(prepared(),records.length,total);
@@ -355,7 +358,7 @@
   async function load() {
     state.controller?.abort();const controller=new AbortController();state.controller=controller;
     const timeout=setTimeout(()=>controller.abort('timeout'),120000);
-    $('refresh').disabled=true;$('error').classList.add('hidden');state.loaded=false;state.complete=false;state.rows=[];state.extra=[];
+    $('refresh').disabled=true;$('error').classList.add('hidden');state.loaded=false;state.complete=false;state.rows=[];state.extra=[];state.metas=[];state.metasError='';
     $('ultimaAtualizacao').textContent='—';$('loadStatus').textContent='Conectando ao Worker';render();
     try {
       const progress=(key,table)=>(rows,count,total)=>{
@@ -367,7 +370,11 @@
       };
       const tasks=[loadTable(page.table,controller.signal,progress('rows',page.table))];
       if(page.extraTable)tasks.push(loadTable(page.extraTable,controller.signal,progress('extra',page.extraTable)));
-      const results=await Promise.all(tasks);
+      const metasTask=pageId==='producao'?loadTable('metas',controller.signal,null,{transform:records=>records.filter(row=>!Object.hasOwn(row,'ativo')||row.ativo===true),size:25}).then(records=>{state.metas=records;}).catch(error=>{
+        if(controller.signal.aborted)throw error;
+        state.metasError=error.message;
+      }):Promise.resolve();
+      const results=await Promise.all([...tasks,metasTask]);
       state.rows=results[0];if(page.extraTable)state.extra=D.preferDaily(results[1]);
       state.loaded=true;
       if(pageId==='producao')selected('year').delete('2025');

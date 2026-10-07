@@ -109,6 +109,20 @@
     });
     return [...groups].sort(([a], [b]) => String(a).localeCompare(String(b), 'pt-BR', {numeric: true}));
   }
+  // A primeira data real disponível representa a semana, inclusive na virada de mês.
+  // O chamador fornece o histórico completo para filtros de fazenda/lote não mudarem a referência.
+  function periodReferenceDate(rows) {
+    return rows.map(row=>row.date).filter(value=>date(value)).sort()[0]||'';
+  }
+  function monthlyTarget(records,indicator,referenceDate) {
+    const d=date(referenceDate);
+    if(!d)return null;
+    const month=iso(d).slice(0,7);
+    const matches=records.filter(row=>row.indicador_codigo===indicator&&(!Object.hasOwn(row,'ativo')||row.ativo===true)&&date(row.referencia_mes)&&iso(date(row.referencia_mes)).slice(0,7)===month);
+    // Não escolher silenciosamente entre cadastros conflitantes do mesmo mês.
+    const values=matches.map(row=>n(row.valor_meta));
+    return values.length&&values.every(value=>value!=null&&value===values[0])?values[0]:null;
+  }
   function recriaFields(sex) {
     return sex === 'machos'
       ? {viab:'viab_mac', viabStd:'std_viab_mac', weight:'ps_medio_machos', weightStd:'ps_medio_std_machos', uniform:'unif_machos', uniformStd:'unif_std_machos', cv:'cv_machos', birds:'saldo_macho', housed:'cab_macho', initial:'cab_ps_med_machos', gad:'consu_ali_gr_machos', gadStd:'consu_ali_std_machos'}
@@ -196,7 +210,7 @@
     const dailyLots = new Set(rows.filter(r=>/di.rio/i.test(text(r.raw.tipo_movto))).map(r=>JSON.stringify([r.company,r.unit,r.lot,r.house])));
     return rows.filter(r=>!dailyLots.has(JSON.stringify([r.company,r.unit,r.lot,r.house]))||/di.rio/i.test(text(r.raw.tipo_movto)));
   }
-  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,previousTwoMonths,lifeWeekGroups,chartGroups,recriaFields,mean,simpleIndicators,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
+  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,previousTwoMonths,lifeWeekGroups,chartGroups,periodReferenceDate,monthlyTarget,recriaFields,mean,simpleIndicators,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
   else root.MatrizesData=api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -119,3 +119,12 @@ Meses mantém suas caixas atuais, sem Selecionar tudo. Sexo continua selecionand
 Linhagem e Lote ficam consecutivos, em linhas próprias no mobile. Selecionar uma opção (ou Selecionar tudo) fecha o filtro de origem e abre o parceiro, preservando a cascata existente. O foco segue para o título do parceiro sem forçar rolagem. O título de cada filtro abre sua própria lista; a troca acontece após a seleção, para que a primeira escolha seja possível. A abertura programática não dispara troca recíproca. Carregar o relatório e limpar filtros não abrem seletores.
 
 Limpar filtros faz parte do cabeçalho fixo à direita e mantém o estilo do Zootécnico. Em largura até 480 px, aparece como ícone com nome acessível. O reset mantém a rotina de dados existente (filtros, seleção temporária dos gráficos e período padrão); os seletores são fechados, a busca é esvaziada e os estados de seleção total/parcial recalculados. Sexo mantém sua escolha, como antes.
+
+
+## Meta / STD de ovos de cama
+
+A tela de Produção carrega `matrizes.metas` pelo Worker em `/api/portal/matrizes/dados/metas`, com Bearer da sessão e tamanho solicitado de 25. Reutiliza a paginação validada das demais tabelas, carregando todas as páginas. Os registros ativos ficam no estado compartilhado `metas`; esse carregamento não ocorre na função de desenho.
+
+Somente a série Meta / STD do gráfico Ovos de cama consulta `indicador_codigo = ovos_cama`, associando o mês/ano da primeira data real disponível da semana no histórico completo a `referencia_mes` e lendo `valor_meta`. Essa referência também resolve semanas que atravessam meses e permanece estável ao filtrar fazenda, lote, linhagem ou parte das datas. Não se interpreta o mês pela label da semana e não se pondera a meta por quantidades.
+
+Mês sem meta ativa, valor inválido ou cadastros conflitantes gera `null`, sem zero, repetição do último valor ou fallback fixo. Falha ao consultar metas mantém as séries reais e informa a indisponibilidade. A série real de ovos de cama e os demais indicadores permanecem inalterados. Os testes usam valores sintéticos distintos entre outubro e novembro, além de dezembro sem cadastro, para verificar a ausência de hardcode.

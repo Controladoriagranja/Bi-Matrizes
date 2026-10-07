@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import assert from 'node:assert/strict';
@@ -27,6 +27,8 @@ if(examplePaths.length) {
     fixtures.incubacao.push({...common,data_incubacao:date,quantidade:700,dias_estoque:i?'03-':'04-03-02-'});
   }
 }
+// Metas sintéticas paginadas: o valor do registro, e não cama_std_pct, alimenta a série.
+fixtures.metas=Array.from({length:32},(_,i)=>({id:i+1,indicador_codigo:i<4?'ovos_cama':'outro',referencia_mes:`2026-${String(i<4?i+8:1).padStart(2,'0')}-01`,valor_meta:i===3?2.5:3,unidade:'porcentagem',ativo:true}));
 const contentTypes={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.woff2':'font/woff2','.md':'text/plain; charset=utf-8'};
 const server=http.createServer((req,res)=>{
   const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
@@ -46,6 +48,7 @@ try {
     const request=route.request(),url=new URL(request.url()),table=url.pathname.split('/').at(-1);
     assert.equal(request.headers().authorization,'Bearer test-only-token');
     assert.ok(fixtures[table],`Tabela desconhecida: ${table}`);
+    if(table==='metas'){assert.equal(url.pathname,'/api/portal/matrizes/dados/metas');assert.equal(url.searchParams.get('tamanho'),'25');}
     const number=Number(url.searchParams.get('pagina')),size=10,records=fixtures[table];requests.push({table,number});
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({esquema:'matrizes',tabela:table,colunas:Object.keys(records[0]||{}),total:records.length,pagina:number,tamanho:size,total_paginas:Math.max(1,Math.ceil(records.length/size)),dados:records.slice((number-1)*size,number*size)})});
   });
@@ -61,6 +64,36 @@ try {
       positions:positions.map(({seriesIndex,index,x,y,width,height,rotation,inside,external})=>({seriesIndex,index,x,y,width,height,rotation,inside,external}))};
   });
   const metrics=[];
+
+  if(!filtersOnly&&!examplePaths.length){
+    const original=fixtures.granja;
+    fixtures.granja=['2026-10-05','2026-10-12','2026-10-31','2026-11-01','2026-11-02','2026-11-09','2026-12-07'].map((data,i)=>({...original[0],id:100+i,data,lote:'A',linhagem:'COBB',cama_std_pct:88}));
+    await page.goto(`${base}/producao.html`);
+    await page.locator('#loadStatus').filter({hasText:'completo'}).waitFor();
+    await page.locator('#startDate').fill('');await page.locator('#startDate').dispatchEvent('change');
+    await page.locator('#endDate').fill('');await page.locator('#endDate').dispatchEvent('change');await settle();
+    const targetValues=()=>page.locator('#chart-cama').evaluate(el=>echarts.getInstanceByDom(el).mzPoints.map(p=>p.bedStd));
+    assert.deepEqual(await targetValues(),[3,3,3,2.5,2.5,null],'Meta por mês real e ausência somente em dezembro');
+    assert.ok(requests.some(r=>r.table==='metas'&&r.number===4),'Carregar última página de metas');
+    assert.ok(requests.some(r=>r.table==='metas'&&r.number===2),'Carregar páginas intermediárias de metas');
+    for(const width of [1440,390]){
+      await page.setViewportSize({width,height:900});
+      for(const theme of ['light','dark']){
+        await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);await settle();
+        assert.deepEqual(await targetValues(),[3,3,3,2.5,2.5,null]);
+        const tooltip=await page.locator('#chart-cama').evaluate(el=>echarts.getInstanceByDom(el).getOption().tooltip[0].formatter([{seriesIndex:1,dataIndex:3,marker:''}]));
+        assert.match(tooltip,/Meta \/ STD \(%\).*2,5%/);
+        await page.locator('#chart-cama').scrollIntoViewIfNeeded();
+        await page.locator('#chart-cama').screenshot({path:path.join(screenshotDir,`cama-metas-${width}-${theme}.png`)});
+      }
+    }
+    await page.locator('[data-expand="cama"]').click();await settle();assert.deepEqual(await targetValues(),[3,3,3,2.5,2.5,null]);await page.keyboard.press('Escape');
+    await page.locator('[data-month="11"]').click();await settle();
+    assert.deepEqual(await targetValues(),[3,2.5,2.5],'Filtro de mês preserva a referência da semana que atravessa meses');
+    fixtures.granja=original;await page.evaluate(()=>{sessionStorage.removeItem('bi-matrizes-filtros-v3-'+MatrizesPages.producao.module);localStorage.setItem('bi-zootecnico-theme','light');});
+    await page.setViewportSize({width:1440,height:1000});
+    console.log('PASS: Ovos de cama com metas sintéticas outubro=3%, novembro=2,5%, dezembro=null; paginação, tooltip, filtro, expansão, desktop/mobile e temas.');
+  }
 
   for(const file of files) {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
@@ -385,5 +418,3 @@ try {
   if(filtersOnly)console.log('PASS: filtros das quatro telas; selecionar/desmarcar tudo, parcial, pesquisa visível, sticky, abertura vinculada, teclado, limpeza fixa e responsividade sem warnings');
   console.log(`PASS: 4 telas desktop/mobile, menu lateral e navegação, tema, filtros, dados, ampliação, 6 tabelas com todas as páginas, sessão ausente e paginação incompleta. ${examplePaths.length?'Exemplos reais dos anexos.':'Dados sintéticos.'}`);
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
-
-
