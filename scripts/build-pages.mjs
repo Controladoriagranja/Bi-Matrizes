@@ -15,25 +15,25 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
     try { const theme = localStorage.getItem('bi-zootecnico-theme'); document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light'; } catch (_) {}
   </script>
   <link rel="stylesheet" href="assets/vendor/geist/index.css">
-  <link rel="stylesheet" href="assets/css/zootecnico-base.css?v=20261006-labels-responsivos">
-  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261006-labels-responsivos">
+  <link rel="stylesheet" href="assets/css/zootecnico-base.css?v=20261007-mobile-fluxo">
+  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261007-mobile-fluxo">
 </head>
 <body class="matrizes-page" data-page="${id}">
   <div id="matrizesApp"></div>
   <noscript>Ative o JavaScript para consultar os indicadores de Matrizes.</noscript>
   <script src="assets/vendor/echarts/echarts.min.js"></script>
-  <script src="assets/js/config.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/api.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/theme.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/matrizes-settings.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/matrizes-data.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/matrizes-pages.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/matrizes-sidebar.js?v=20261006-labels-responsivos-sidebar"></script>
-  <script src="assets/js/matrizes-formulas.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/matrizes-chart-labels.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/matrizes-chart-layout.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/matrizes-chart-style.js?v=20261006-labels-responsivos"></script>
-  <script src="assets/js/matrizes-app.js?v=20261006-labels-responsivos"></script>
+  <script src="assets/js/config.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/api.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/theme.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/matrizes-settings.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/matrizes-data.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/matrizes-pages.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/matrizes-sidebar.js?v=20261007-mobile-fluxo-sidebar"></script>
+  <script src="assets/js/matrizes-formulas.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/matrizes-chart-labels.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/matrizes-chart-layout.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/matrizes-chart-style.js?v=20261007-mobile-fluxo"></script>
+  <script src="assets/js/matrizes-app.js?v=20261007-mobile-fluxo"></script>
 </body>
 </html>
 `,'utf8');

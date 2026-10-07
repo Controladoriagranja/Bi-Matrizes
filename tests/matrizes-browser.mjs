@@ -219,6 +219,39 @@ try {
       await page.screenshot({path:path.join(screenshotDir,'producao-dark.png'),fullPage:true});
       await page.locator('[data-theme-toggle]').click();
     }
+    // Regressão: altura intrínseca dos filtros deve empurrar o relatório para baixo.
+    const checkMobileFlow=async()=>{
+      const boxes=await page.evaluate(()=>{
+        const rect=selector=>{const {top,bottom,left,right,height}=document.querySelector(selector).getBoundingClientRect();return {top,bottom,left,right,height};};
+        return {filters:rect('.mz-filters'),main:rect('.mz-main'),fields:rect('#filterFields'),header:rect('.mz-topbar'),layout:rect('.mz-layout'),
+          clipped:[...document.querySelectorAll('.mz-topbar strong,.mz-topbar button,.mz-breadcrumb')].some(el=>{const r=el.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}),
+          filterScroll:document.querySelector('.mz-filters').scrollHeight>document.querySelector('.mz-filters').clientHeight+1};
+      });
+      assert.ok(boxes.main.top>=boxes.filters.bottom+15,`${file}: relatório sobreposto aos filtros`);
+      assert.ok(boxes.fields.bottom<=boxes.filters.bottom,`${file}: campos saíram do painel de filtros`);
+      assert.ok(boxes.layout.top>=boxes.header.bottom-1,`${file}: conteúdo sob o cabeçalho`);
+      assert.equal(boxes.clipped,false,`${file}: cabeçalho fora da tela`);
+      assert.equal(boxes.filterScroll,false,`${file}: painel mobile com rolagem interna`);
+    };
+    for(const [width,height] of [[320,640],[360,740],[390,844],[430,932],[768,1024],[844,390]]){
+      await page.setViewportSize({width,height});await settle();
+      await page.locator('.mz-layout').evaluate(el=>el.scrollTop=0);await checkMobileFlow();
+    }
+    await page.setViewportSize({width:390,height:844});await settle();
+    await page.locator('.mz-layout').evaluate(el=>el.scrollTop=0);
+    await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-mobile-filters-top.png'))});
+    await page.locator('[data-filter-choice="farm"] summary').click();await checkMobileFlow();
+    await page.locator('[data-filter="farm"]').first().check();await settle();await checkMobileFlow();
+    await page.locator('#clearFilters').click();await settle();const mobileBefore=await page.locator('#recordCount').textContent();
+    await page.locator('[data-month="1"]').click();await settle();assert.match(await page.locator('#recordCount').textContent(),/^0 de /);await checkMobileFlow();
+    await page.locator('#clearFilters').click();await settle();assert.equal(await page.locator('#recordCount').textContent(),mobileBefore);await checkMobileFlow();
+    await page.locator('.mz-heading').scrollIntoViewIfNeeded();
+    await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-mobile-report-below.png'))});
+    const mobileScroll=await page.locator('.mz-layout').evaluate(el=>el.scrollTop);
+    await page.locator('.side-nav-rail').click();await page.locator('.side-nav-close').click();
+    assert.ok(Math.abs(await page.locator('.mz-layout').evaluate(el=>el.scrollTop)-mobileScroll)<2,'Menu preserva rolagem mobile');
+    await page.locator('[data-expand]').first().click();await settle();
+    assert.equal(await page.locator('.mz-chart-card.expanded').count(),1);await page.keyboard.press('Escape');await settle();await checkMobileFlow();
     await page.setViewportSize({width:390,height:844});
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)) {
@@ -252,11 +285,31 @@ try {
   assert.deepEqual(errors,[],'Erros JavaScript no navegador');
   const embeddedPage=await context.newPage();
   await embeddedPage.goto(`${base}/index.html`);
+  await embeddedPage.locator("#loadStatus").filter({hasText:"completo"}).waitFor();
   await embeddedPage.setContent(`<div style="position:fixed;inset:20px;display:flex;flex-direction:column;overflow:hidden"><div style="height:36px;flex-shrink:0">CENTRAL</div><iframe src="${base}/producao.html" style="border:0;flex:1;width:100%;min-height:0"></iframe></div>`);
   const report=embeddedPage.frameLocator('iframe');
   await report.locator('#loadStatus').filter({hasText:'completo'}).waitFor({timeout:30000});
   await report.locator('.mz-topbar').evaluate(el=>el.ownerDocument.querySelector('.mz-layout').scrollTop=900);
   assert.equal(await report.locator('.mz-topbar').evaluate(el=>el.getBoundingClientRect().top),0,'Cabe?alho deve permanecer fixo dentro da CENTRAL');
+  await embeddedPage.setViewportSize({width:390,height:844});
+  for(const file of files){
+    await embeddedPage.locator('iframe').evaluate((el,url)=>{el.src=url;},`${base}/${file}`);
+    await report.locator('#loadStatus').filter({hasText:'completo'}).waitFor({timeout:30000});
+    const checkFrameFlow=async()=>{
+      const flow=await report.locator('.mz-main').evaluate(el=>{
+        const doc=el.ownerDocument,f=doc.querySelector('.mz-filters').getBoundingClientRect(),m=el.getBoundingClientRect();
+        return {filtersBottom:f.bottom,mainTop:m.top,overflow:doc.documentElement.scrollWidth>doc.defaultView.innerWidth};
+      });
+      assert.ok(flow.mainTop>=flow.filtersBottom+15,`${file}: sobreposição dentro da CENTRAL mobile`);assert.equal(flow.overflow,false);
+    };
+    await checkFrameFlow();
+    await report.locator('[data-filter-choice="farm"] summary').click();await checkFrameFlow();
+    await report.locator('.mz-layout').evaluate(el=>el.scrollTop=0);
+    await embeddedPage.screenshot({path:path.join(screenshotDir,file.replace('.html','-central-mobile-filters.png'))});
+    await report.locator('.mz-heading').scrollIntoViewIfNeeded();await checkFrameFlow();
+    assert.equal(await report.locator('.mz-topbar').evaluate(el=>el.getBoundingClientRect().top),0);
+    await embeddedPage.screenshot({path:path.join(screenshotDir,file.replace('.html','-central-mobile-report.png'))});
+  }
   await embeddedPage.close();
   await context.close();
   // Missing CENTRAL session must stop before any network request.

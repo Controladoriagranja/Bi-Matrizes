@@ -101,3 +101,10 @@ A coluna de filtros mantém 215 px (190 px no breakpoint intermediário).
 
 Tipos de apresentação: percentuais usam % nos eixos, rótulos, tooltip e tabela. Peso médio e STD de peso usam duas casas decimais (g); diferença de peso permanece percentual. GAD e STD de GAD são exibidos sem casas decimais (g/ave/dia). Incubação e estoque usam duas casas decimais, preservando ovos/dias como unidades; seguem a política de seu tipo de gráfico. O arredondamento é apenas visual, sem mudar valores ou cálculos. Aproveitamento mantém a proporção visual 70/30.
 
+
+
+## Fluxo mobile do relatório
+
+Até 780 px (e no telefone em paisagem até 1024 px com altura até 600 px), `.mz-layout` usa fluxo de blocos na própria área de rolagem. O painel de filtros cresce pela altura do conteúdo, sem rolagem interna nem compressão de tracks de grid. A margem de 24 px separa filtros e relatório; expandir um seletor empurra o restante para baixo. Em telas até 480 px, o cabeçalho organiza identificação e ações em duas linhas e os cards ficam em uma coluna. O cabeçalho continua fixo e sua altura é medida. A regra aplica-se às quatro telas e também ao iframe da CENTRAL. Cálculos e filtros mantêm seu comportamento.
+
+O teste de navegador verifica retângulos (fim dos filtros antes do início do relatório), abertura de seletores, filtros mensais, limpeza, menu, ampliação, rolagem e cortes de cabeçalho em 320, 360, 390, 430, 768 px e 844 px em paisagem. Também verifica as quatro páginas no iframe mobile.
