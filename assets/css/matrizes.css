@@ -143,3 +143,19 @@ body.mz-expanded .mz-layout, body.side-nav-open .mz-layout { overflow:hidden; }
   .mz-kpi { padding:16px 48px 16px 16px; }
   .mz-kpi small { display:block; line-height:1.5; }
 }
+
+/* Ações e estados comuns de multisseleção. */
+.mz-options { padding-top:0; }
+.mz-options .mz-select-all, .mz-select-all { display:flex; align-items:center; gap:8px; padding:9px 2px; font-size:13px; font-weight:600; background:var(--card); color:var(--foreground); }
+.mz-options .mz-select-all { position:sticky; top:0; z-index:2; border-bottom:1px solid var(--border); margin-bottom:6px; }
+.mz-select-all input { accent-color:var(--primary); }
+.mz-select-all:has(input:disabled) { color:var(--muted-foreground); }
+.mz-clear-top { display:inline-flex; align-items:center; gap:6px; flex-shrink:0; min-height:40px; }
+.mz-clear-top svg { width:18px; height:18px; flex-shrink:0; }
+@media (max-width:780px), (max-width:1024px) and (max-height:600px) {
+  .mz-linked-filter { grid-column:1/-1; }
+}
+@media (max-width:480px) {
+  .mz-clear-top { padding:8px; min-width:40px; justify-content:center; }
+  .mz-clear-label { display:none; }
+}

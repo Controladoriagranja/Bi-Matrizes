@@ -6,7 +6,8 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(import.meta.dirname,'..');
-const examplePaths=process.argv.slice(2);
+const filtersOnly=process.argv.includes('--filters-only');
+const examplePaths=process.argv.slice(2).filter(arg=>arg!=='--filters-only');
 const tables=['acerto_produtor_producao','acerto_produtor_recria','eclosao','embrio','granja','inc','incubacao'];
 const fixtures={};
 if(examplePaths.length) {
@@ -48,7 +49,7 @@ try {
     const number=Number(url.searchParams.get('pagina')),size=10,records=fixtures[table];requests.push({table,number});
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({esquema:'matrizes',tabela:table,colunas:Object.keys(records[0]||{}),total:records.length,pagina:number,tamanho:size,total_paginas:Math.max(1,Math.ceil(records.length/size)),dados:records.slice((number-1)*size,number*size)})});
   });
-  const errors=[],page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+  const errors=[],warnings=[],page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));page.on('console',message=>{if(['warning','error'].includes(message.type()))warnings.push(message.text());});
   const base=`http://127.0.0.1:${server.address().port}`;
   const files=['index.html','producao.html','incubatorio.html','embrio.html'];
   const settle=async()=>{await page.waitForFunction(()=>[...document.querySelectorAll('.mz-chart')].every(el=>!echarts.getInstanceByDom(el)?.mzPresentationFrame));await page.waitForTimeout(300);};
@@ -65,6 +66,58 @@ try {
     if(!page.url().endsWith(`/${file}`))await page.goto(`${base}/${file}`);
     await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent.includes('completo')).catch(async error=>{throw new Error(`${file}: ${await page.locator('#error').textContent()} / ${errors.join(' | ')} / ${error.message}`);});
     assert.equal(await page.locator('#error').isVisible(),false);
+    if(filtersOnly){
+      const ensureOpen=async key=>{if(await page.locator(`[data-filter-choice="${key}"]`).getAttribute('open')===null)await page.locator(`[data-filter-choice="${key}"] summary`).click();};
+      assert.equal(await page.locator('#clearFilters').count(),1);assert.equal(await page.locator('.mz-topbar #clearFilters').count(),1);
+      assert.equal(await page.locator('[data-select-all="month"],[data-select-all="sex"]').count(),0);
+      assert.equal(await page.locator('[data-filter-choice][open]').count(),0,'Não abrir filtros ao carregar');
+      const keys=await page.locator('[data-filter-choice]').evaluateAll(elements=>elements.map(el=>el.dataset.filterChoice));
+      for(const key of keys){
+        await page.locator('#clearFilters').click();await ensureOpen(key);
+        const all=page.locator(`[data-select-all="${key}"]`),options=page.locator(`[data-filter="${key}"]`);
+        assert.equal(await all.count(),1);assert.equal(await all.evaluate(el=>el.closest('.mz-options').firstElementChild===el.parentElement),true);
+        if(!await options.count()){assert.equal(await all.isDisabled(),true);continue;}
+        await all.check();await ensureOpen(key);assert.equal(await options.evaluateAll(inputs=>inputs.every(el=>el.checked)),true,`${key}: marcar todas`);
+        assert.equal(await all.getAttribute('aria-checked'),'true');
+        await all.uncheck();assert.equal(await options.evaluateAll(inputs=>inputs.every(el=>!el.checked)),true,`${key}: desmarcar todas`);
+      }
+      await page.locator('#clearFilters').click();await ensureOpen('lineage');
+      await page.locator('[data-filter="lineage"][value="COBB"]').check();
+      assert.equal(await page.locator('[data-select-all="lineage"]').getAttribute('aria-checked'),'mixed');
+      assert.equal(await page.locator('[data-filter-choice="lineage"]').getAttribute('open'),null);
+      assert.notEqual(await page.locator('[data-filter-choice="lot"]').getAttribute('open'),null);
+      assert.equal(await page.locator('[data-filter="lot"][value="B"]').count(),0,'Preservar cascata existente');
+      await page.locator('[data-filter="lot"][value="A"]').check();
+      assert.equal(await page.locator('[data-filter-choice="lot"]').getAttribute('open'),null);
+      assert.notEqual(await page.locator('[data-filter-choice="lineage"]').getAttribute('open'),null);
+      assert.equal(await page.locator('[data-filter-choice][open]').count(),1,'Sem loop entre filtros');
+      assert.equal(await page.evaluate(()=>document.activeElement.closest('[data-filter-choice]')?.dataset.filterChoice),'lineage');
+      await page.locator('#clearFilters').click();await ensureOpen('lot');await page.locator('[data-search="lot"]').fill('A');
+      await page.locator('[data-select-all="lot"]').check();await ensureOpen('lot');
+      assert.equal(await page.locator('[data-filter="lot"][value="A"]').isChecked(),true);assert.equal(await page.locator('[data-filter="lot"][value="B"]').isChecked(),false);
+      await page.locator('[data-select-all="lot"]').uncheck();await ensureOpen('lot');await page.locator('[data-search="lot"]').fill('sem resultado');
+      assert.equal(await page.locator('[data-select-all="lot"]').isDisabled(),true);
+      await page.locator('#clearFilters').click();await ensureOpen('age');
+      const sticky=await page.locator('[data-filter-choice="age"] .mz-options').evaluate(el=>{el.scrollTop=el.scrollHeight;return {top:el.getBoundingClientRect().top,labelTop:el.querySelector('.mz-select-all').getBoundingClientRect().top,position:getComputedStyle(el.querySelector('.mz-select-all')).position};});
+      assert.equal(sticky.position,'sticky');assert.ok(Math.abs(sticky.top-sticky.labelTop)<=1);
+      await page.locator('[data-filter-choice="age"] summary').focus();await page.keyboard.press('Escape');assert.equal(await page.locator('[data-filter-choice="age"]').getAttribute('open'),null);
+      for(const width of [1440,768,430,390,320]){
+        await page.setViewportSize({width,height:844});await settle();await page.locator('#clearFilters').click();
+        const before=await page.locator('#clearFilters').boundingBox();await page.locator('.mz-layout').evaluate(el=>el.scrollTop=1000);const after=await page.locator('#clearFilters').boundingBox();
+        assert.equal(after.y,before.y);assert.equal(after.x,before.x);assert.ok(after.x+after.width<=width);
+        const geometry=await page.evaluate(()=>{const r=selector=>document.querySelector(selector).getBoundingClientRect();const lineage=r('[data-filter-choice="lineage"]'),lot=r('[data-filter-choice="lot"]'),clear=r('#clearFilters'),theme=r('[data-theme-toggle]');return {linked:lot.top>=lineage.bottom,aligned:Math.abs(lot.left-lineage.left)<1,overlap:clear.left<theme.right&&clear.right>theme.left&&clear.top<theme.bottom&&clear.bottom>theme.top};});
+        assert.equal(geometry.linked,true);assert.equal(geometry.aligned,true);assert.equal(geometry.overlap,false);
+        await page.locator('#clearFilters').click();assert.equal(await page.locator('[data-select-all]:checked').count(),0);assert.equal(await page.locator('[data-filter-choice][open]').count(),0);
+      }
+      await page.locator('[data-filter-choice="lineage"] summary').focus();await page.keyboard.press('Enter');await page.locator('[data-filter="lineage"]').first().focus();await page.keyboard.press('Space');
+      assert.notEqual(await page.locator('[data-filter-choice="lot"]').getAttribute('open'),null,'Seleção pelo teclado também abre o parceiro');
+      await page.locator('#clearFilters').click();await page.locator('.mz-layout').evaluate(el=>el.scrollTop=0);
+      await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-filter-controls-mobile-light.png'))});
+      await page.locator('[data-theme-toggle]').click();await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-filter-controls-mobile-dark.png'))});await page.locator('[data-theme-toggle]').click();
+      await page.setViewportSize({width:1440,height:1000});await ensureOpen('lineage');await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-filter-controls-desktop.png'))});
+      continue;
+    }
+
     await page.waitForFunction(()=>echarts.getInstanceByDom(document.querySelector('.mz-chart'))?.getOption().graphic?.[0]?.elements?.some(item=>item.type==='text'&&item.z>5)).catch(()=>{throw new Error('Rotulos ausentes em '+file);});
     await page.locator('.mz-chart').first().evaluate(el=>{
       const option=echarts.getInstanceByDom(el).getOption();
@@ -213,7 +266,8 @@ try {
         assert.equal(await page.locator('[data-filter="lot"][value="A"]').count(),1);
         const position=await page.evaluate(()=>{const filters=document.querySelector('.mz-filters');filters.scrollTop=filters.scrollHeight;return filters.scrollTop;});
         await page.locator('#clearFilters').click();
-        assert.ok(Math.abs(await page.locator('.mz-filters').evaluate(el=>el.scrollTop)-position)<2,'Posição dos filtros preservada');
+        const scrollAfter=await page.locator('.mz-filters').evaluate(el=>({top:el.scrollTop,max:el.scrollHeight-el.clientHeight}));
+        assert.ok(Math.abs(scrollAfter.top-Math.min(position,scrollAfter.max))<2,'Posição dos filtros preservada dentro da nova altura');
       }
       await page.locator('[data-theme-toggle]').click();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
       await page.screenshot({path:path.join(screenshotDir,'producao-dark.png'),fullPage:true});
@@ -282,7 +336,7 @@ try {
     if(next){await page.locator('.side-nav-rail').click();await page.locator(`.side-nav-link[href="${next}"]`).click();await page.waitForURL(`${base}/${next}`);}
   }
   for(const table of tables.filter(table=>table!=='inc'))assert.ok(requests.some(r=>r.table===table&&r.number===3),`${table}: última página não consultada`);
-  assert.deepEqual(errors,[],'Erros JavaScript no navegador');
+  assert.deepEqual(errors,[],'Erros JavaScript no navegador');assert.deepEqual(warnings,[],'Warnings novos no navegador');
   const embeddedPage=await context.newPage();
   await embeddedPage.goto(`${base}/index.html`);
   await embeddedPage.locator("#loadStatus").filter({hasText:"completo"}).waitFor();
@@ -328,6 +382,7 @@ try {
   assert.match(await brokenPage.locator('#error').textContent(),/incompleta/);
   assert.equal(await brokenPage.locator('.mz-kpi strong').first().textContent(),'—');await broken.close();
   fs.writeFileSync(path.join(screenshotDir,'labels-metrics.json'),JSON.stringify(metrics,null,2));
+  if(filtersOnly)console.log('PASS: filtros das quatro telas; selecionar/desmarcar tudo, parcial, pesquisa visível, sticky, abertura vinculada, teclado, limpeza fixa e responsividade sem warnings');
   console.log(`PASS: 4 telas desktop/mobile, menu lateral e navegação, tema, filtros, dados, ampliação, 6 tabelas com todas as páginas, sessão ausente e paginação incompleta. ${examplePaths.length?'Exemplos reais dos anexos.':'Dados sintéticos.'}`);
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
 

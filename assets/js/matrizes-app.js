@@ -78,7 +78,7 @@
     $('matrizesApp').innerHTML=`
       <header class="mz-topbar">
         <div class="mz-breadcrumb"><span>Matrizes</span><span aria-hidden="true">/</span><strong>${page.module}</strong></div>
-        <div class="mz-top-actions"><div class="mz-update">Última atualização<strong id="ultimaAtualizacao">—</strong></div><button class="mz-button" data-theme-toggle aria-label="Alternar tema" title="Alternar tema"><span data-theme-icon>☾</span></button></div>
+        <div class="mz-top-actions"><div class="mz-update">Última atualização<strong id="ultimaAtualizacao">—</strong></div><button class="mz-button" data-theme-toggle aria-label="Alternar tema" title="Alternar tema"><span data-theme-icon>☾</span></button><button type="button" id="clearFilters" class="button button-ghost-danger mz-clear-top" aria-label="Limpar filtros" title="Limpar filtros"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg><span class="mz-clear-label">Limpar filtros</span></button></div>
       </header>
       <div class="mz-layout">
         <aside class="mz-filters" aria-label="Filtros dos indicadores"><div class="mz-filters-head"><h2>Filtros</h2></div><div class="mz-filter-fields" id="filterFields"></div></aside>
@@ -102,6 +102,7 @@
     if(window.ThemeManager)document.querySelector('[data-theme-icon]').textContent=ThemeManager.get()==='dark'?'☀':'☾';
     $('kpis').addEventListener('click',event=>{const button=event.target.closest('[data-formula]');if(button)MatrizesFormulaUI.open({key:button.dataset.formula,page,sex:state.sex,rows:filtered(state.rows),value:D.simpleIndicators(filtered(state.rows),page.calc,state.sex)[button.dataset.formula]});});
     $('refresh').addEventListener('click',load);
+    $('clearFilters').addEventListener('click',clearFilters);
     $('chartSelectionStatus').addEventListener('click',clearChartSelection);
     document.addEventListener('click',event=>{if(!event.target.closest('.mz-chart,button,a,input,summary,details,.mz-filters,.side-nav-root'))clearChartSelection();});
     $('toggleWeeks').addEventListener('click',()=>{
@@ -131,13 +132,39 @@
     const card=$(`card-${id}`),wasOpen=card.classList.contains('expanded');closeExpanded();
     if(!wasOpen){card.classList.add('expanded');document.body.classList.add('mz-expanded');const button=card.querySelector('[data-expand]');button.textContent='×';button.setAttribute('aria-expanded','true');button.setAttribute('aria-label','Fechar gráfico ampliado');scheduleChartPresentation(state.charts.get(id));}
   }
+  function selectAllControl(key) {
+    return `<label class="mz-select-all"><input type="checkbox" data-select-all="${key}" aria-label="Selecionar tudo em ${filterLabels[key]}"><span>Selecionar tudo</span></label>`;
+  }
+  function visibleOptions(key) {
+    return [...document.querySelectorAll(`[data-filter="${key}"]`)].filter(input=>!input.closest('label').hidden);
+  }
+  function syncSelectAll(key) {
+    const control=document.querySelector(`[data-select-all="${key}"]`);if(!control)return;
+    const options=visibleOptions(key);
+    const count=options.filter(option=>option.checked).length;
+    control.checked=options.length>0&&count===options.length;
+    control.indeterminate=count>0&&count<options.length;control.disabled=!options.length;
+    control.setAttribute('aria-checked',control.indeterminate?'mixed':String(control.checked));
+  }
+  function openLinkedFilter(key) {
+    const peer=key==='lineage'?'lot':key==='lot'?'lineage':null;if(!peer)return;
+    const target=document.querySelector(`[data-filter-choice="${peer}"]`);if(!target)return;
+    document.querySelector(`[data-filter-choice="${key}"]`).open=false;target.open=true;
+    target.querySelector('summary').focus({preventScroll:true});
+  }
+  function clearFilters() {
+    // Mesmo reset de dados e período; somente os estados visuais adicionais são limpos.
+    state.chartSelection=null;state.filters={};state.start=defaultPeriod.start;state.end=defaultPeriod.end;
+    document.querySelectorAll('[data-filter-choice]').forEach(el=>el.open=false);
+    document.querySelectorAll('[data-search]').forEach(el=>el.value='');saveFilters();render();
+  }
   function filterChoice(key,rows) {
     const values=[...new Set(rows.map(r=>String(r[key]??'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
     if(!values.length&&['stage','origin','status','house','lineage'].includes(key))return '';
     const sel=selected(key),label=filterLabels[key];
     const allValues=values;
     const display=v=>key==='week'?groupLabel(v,'week'):v;
-    return `<div class="mz-filter"><span id="label-${key}">${label}</span><details class="mz-choice" data-filter-choice="${key}"><summary aria-labelledby="label-${key}">${sel.size?`${sel.size} selecionado(s)`:'Todos'}</summary><div class="mz-options">${['lot','farm'].includes(key)?`<input class="mz-search" data-search="${key}" type="search" placeholder="Pesquisar ${label.toLowerCase()}" aria-label="Pesquisar ${label.toLowerCase()}">`:''}${allValues.length?allValues.map(value=>`<label><input type="checkbox" data-filter="${key}" value="${escape(value)}" ${sel.has(value)?'checked':''}><span>${escape(display(value))}</span></label>`).join(''):'<p class="mz-unavailable">Sem opções</p>'}</div></details></div>`;
+    return `<div class="mz-filter ${['lineage','lot'].includes(key)?'mz-linked-filter':''}"><span id="label-${key}">${label}</span><details class="mz-choice" data-filter-choice="${key}"><summary aria-labelledby="label-${key}">${sel.size?`${sel.size} selecionado(s)`:'Todos'}</summary><div class="mz-options">${selectAllControl(key)}${['lot','farm'].includes(key)?`<input class="mz-search" data-search="${key}" type="search" placeholder="Pesquisar ${label.toLowerCase()}" aria-label="Pesquisar ${label.toLowerCase()}">`:''}${allValues.length?allValues.map(value=>`<label><input type="checkbox" data-filter="${key}" value="${escape(value)}" ${sel.has(value)?'checked':''}><span>${escape(display(value))}</span></label>`).join(''):'<p class="mz-unavailable">Sem opções</p>'}</div></details></div>`;
   }
   function reconcileFilters(changed) {
     const rows=sexRows([...state.rows,...state.extra]);
@@ -157,30 +184,40 @@
     const rows=sexRows([...state.rows,...state.extra]);
     const choices=key=>filterChoice(key,rows.filter(row=>matches(row,key)));
 
+    const orderedFilters=page.filters.flatMap(key=>key==='lineage'&&page.filters.includes('lot')?[]:key==='lot'&&page.filters.includes('lineage')?['lineage','lot']:[key]);
     $('filterFields').innerHTML=choices('year')+`
       <div class="mz-filter"><span>Meses</span><div class="mz-months">${months.map((label,i)=>`<button type="button" data-month="${i+1}" class="${selected('month').has(String(i+1))?'active':''}" aria-pressed="${selected('month').has(String(i+1))}">${label}</button>`).join('')}</div></div>`+
-      choices('week')+page.filters.map(key=>key==='sex'?`
+      choices('week')+orderedFilters.map(key=>key==='sex'?`
         <div class="mz-filter"><span>Sexo</span><div class="mz-sex">${[['femeas','Fêmeas'],['machos','Machos']].map(([value,label])=>`<button type="button" data-sex="${value}" class="${state.sex===value?'active':''}" aria-pressed="${state.sex===value}">${label}</button>`).join('')}</div></div>`:choices(key)).join('')+`
       <div class="mz-filter"><label for="startDate">Data inicial</label><input id="startDate" type="date" value="${escape(state.start)}" ${state.end?`max="${escape(state.end)}"`:''}></div>
-      <div class="mz-filter"><label for="endDate">Data final</label><input id="endDate" type="date" value="${escape(state.end)}" ${state.start?`min="${escape(state.start)}"`:''}></div>
-      <div class="mz-filter"><button id="clearFilters" class="button button-ghost-danger">Limpar filtros</button></div>`;
+      <div class="mz-filter"><label for="endDate">Data final</label><input id="endDate" type="date" value="${escape(state.end)}" ${state.start?`min="${escape(state.start)}"`:''}></div>`;
     document.querySelectorAll('[data-filter-choice]').forEach(el=>{el.open=open.has(el.dataset.filterChoice);});
     document.querySelectorAll('[data-filter]').forEach(input=>input.addEventListener('change',()=>{
-      const set=selected(input.dataset.filter);input.checked?set.add(input.value):set.delete(input.value);reconcileFilters(input.dataset.filter);saveFilters();render();
+      const set=selected(input.dataset.filter);input.checked?set.add(input.value):set.delete(input.value);reconcileFilters(input.dataset.filter);saveFilters();render();openLinkedFilter(input.dataset.filter);
+    }));
+    document.querySelectorAll('[data-select-all]').forEach(control=>control.addEventListener('change',()=>{
+      const key=control.dataset.selectAll,set=selected(key);
+      const values=visibleOptions(key).map(el=>el.value);
+      values.forEach(value=>control.checked?set.add(value):set.delete(value));
+      reconcileFilters(key);
+      saveFilters();render();document.querySelector(`[data-select-all="${key}"]`)?.focus({preventScroll:true});openLinkedFilter(key);
+    }));
+    document.querySelectorAll('[data-filter-choice]').forEach(details=>details.addEventListener('keydown',event=>{
+      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();details.open=false;details.querySelector('summary').focus({preventScroll:true});}
     }));
     document.querySelectorAll('[data-month]').forEach(button=>button.addEventListener('click',()=>{
       const set=selected('month');set.has(button.dataset.month)?set.delete(button.dataset.month):set.add(button.dataset.month);state.start='';state.end='';selected('week').clear();saveFilters();render();
     }));
     document.querySelectorAll('[data-sex]').forEach(button=>button.addEventListener('click',()=>{state.sex=button.dataset.sex;saveFilters();render();}));
     document.querySelectorAll('[data-search]').forEach(input=>input.addEventListener('input',()=>{
-      const term=input.value.toLocaleLowerCase('pt-BR');input.parentElement.querySelectorAll('label').forEach(label=>label.hidden=!label.textContent.toLocaleLowerCase('pt-BR').includes(term));
+      const term=input.value.toLocaleLowerCase('pt-BR');input.parentElement.querySelectorAll('label:not(.mz-select-all)').forEach(label=>label.hidden=!label.textContent.toLocaleLowerCase('pt-BR').includes(term));syncSelectAll(input.dataset.search);
     }));
     document.querySelectorAll('[data-search]').forEach(input=>{input.value=searches[input.dataset.search]||'';input.dispatchEvent(new Event('input'));});
+    document.querySelectorAll('[data-select-all]').forEach(control=>syncSelectAll(control.dataset.selectAll));
     if(focus){const input=[...document.querySelectorAll('[data-filter]')].find(el=>el.dataset.filter===focus.key&&el.value===focus.value);input?.focus({preventScroll:true});}
     scrolls.forEach(({el,key,top})=>{const target=el.isConnected?el:key?document.querySelector(`[data-filter-choice="${key}"] .mz-options`):null;if(target)target.scrollTop=top;});
     $('startDate').addEventListener('change',()=>{state.start=$('startDate').value;saveFilters();render();});
     $('endDate').addEventListener('change',()=>{state.end=$('endDate').value;saveFilters();render();});
-    $('clearFilters').addEventListener('click',()=>{state.chartSelection=null;state.filters={};state.start=defaultPeriod.start;state.end=defaultPeriod.end;saveFilters();render();});
   }
   function renderKpis(rows) {
     const data=D.simpleIndicators(rows,page.calc,state.sex),context='Média simples do período selecionado';

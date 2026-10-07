@@ -108,3 +108,14 @@ Tipos de apresentação: percentuais usam % nos eixos, rótulos, tooltip e tabel
 Até 780 px (e no telefone em paisagem até 1024 px com altura até 600 px), `.mz-layout` usa fluxo de blocos na própria área de rolagem. O painel de filtros cresce pela altura do conteúdo, sem rolagem interna nem compressão de tracks de grid. A margem de 24 px separa filtros e relatório; expandir um seletor empurra o restante para baixo. Em telas até 480 px, o cabeçalho organiza identificação e ações em duas linhas e os cards ficam em uma coluna. O cabeçalho continua fixo e sua altura é medida. A regra aplica-se às quatro telas e também ao iframe da CENTRAL. Cálculos e filtros mantêm seu comportamento.
 
 O teste de navegador verifica retângulos (fim dos filtros antes do início do relatório), abertura de seletores, filtros mensais, limpeza, menu, ampliação, rolagem e cortes de cabeçalho em 320, 360, 390, 430, 768 px e 844 px em paisagem. Também verifica as quatro páginas no iframe mobile.
+
+
+## Controles de filtros
+
+Os dropdowns são gerados por `filterChoice` em `matrizes-app.js`. Cada lista começa com uma caixa Selecionar tudo, fixa no topo da área de opções com fundo do tema. A caixa alterna seleção/desmarcação e informa o estado parcial nativo (`indeterminate` e `aria-checked=mixed`). Nas listas com pesquisa, a ação se aplica apenas às opções visíveis e mantém as seleções fora da pesquisa. Nenhum resultado deixa o controle desabilitado.
+
+Meses mantém suas caixas atuais, sem Selecionar tudo. Sexo continua selecionando exclusivamente Fêmeas ou Machos, conforme autorizado. Datas são controles de intervalo, sem seleção em massa.
+
+Linhagem e Lote ficam consecutivos, em linhas próprias no mobile. Selecionar uma opção (ou Selecionar tudo) fecha o filtro de origem e abre o parceiro, preservando a cascata existente. O foco segue para o título do parceiro sem forçar rolagem. O título de cada filtro abre sua própria lista; a troca acontece após a seleção, para que a primeira escolha seja possível. A abertura programática não dispara troca recíproca. Carregar o relatório e limpar filtros não abrem seletores.
+
+Limpar filtros faz parte do cabeçalho fixo à direita e mantém o estilo do Zootécnico. Em largura até 480 px, aparece como ícone com nome acessível. O reset mantém a rotina de dados existente (filtros, seleção temporária dos gráficos e período padrão); os seletores são fechados, a busca é esvaziada e os estados de seleção total/parcial recalculados. Sexo mantém sua escolha, como antes.
