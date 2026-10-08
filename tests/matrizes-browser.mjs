@@ -110,21 +110,23 @@ try {
         const all=page.locator(`[data-select-all="${key}"]`),options=page.locator(`[data-filter="${key}"]`);
         assert.equal(await all.count(),1);assert.equal(await all.evaluate(el=>el.closest('.mz-options').firstElementChild===el.parentElement),true);
         if(!await options.count()){assert.equal(await all.isDisabled(),true);continue;}
-        await all.check();await ensureOpen(key);assert.equal(await options.evaluateAll(inputs=>inputs.every(el=>el.checked)),true,`${key}: marcar todas`);
+        await options.first().check();assert.notEqual(await page.locator(`[data-filter-choice="${key}"]`).getAttribute('open'),null,`${key}: opção mantém lista aberta`);
+        await options.first().uncheck();assert.notEqual(await page.locator(`[data-filter-choice="${key}"]`).getAttribute('open'),null,`${key}: desmarcar mantém lista aberta`);
+        await all.check();assert.notEqual(await page.locator(`[data-filter-choice="${key}"]`).getAttribute('open'),null,`${key}: selecionar tudo mantém lista aberta`);assert.equal(await options.evaluateAll(inputs=>inputs.every(el=>el.checked)),true,`${key}: marcar todas`);
         assert.equal(await all.getAttribute('aria-checked'),'true');
         await all.uncheck();assert.equal(await options.evaluateAll(inputs=>inputs.every(el=>!el.checked)),true,`${key}: desmarcar todas`);
       }
       await page.locator('#clearFilters').click();await ensureOpen('lineage');
       await page.locator('[data-filter="lineage"][value="COBB"]').check();
       assert.equal(await page.locator('[data-select-all="lineage"]').getAttribute('aria-checked'),'mixed');
-      assert.equal(await page.locator('[data-filter-choice="lineage"]').getAttribute('open'),null);
-      assert.notEqual(await page.locator('[data-filter-choice="lot"]').getAttribute('open'),null);
-      assert.equal(await page.locator('[data-filter="lot"][value="B"]').count(),0,'Preservar cascata existente');
-      await page.locator('[data-filter="lot"][value="A"]').check();
-      assert.equal(await page.locator('[data-filter-choice="lot"]').getAttribute('open'),null);
       assert.notEqual(await page.locator('[data-filter-choice="lineage"]').getAttribute('open'),null);
-      assert.equal(await page.locator('[data-filter-choice][open]').count(),1,'Sem loop entre filtros');
-      assert.equal(await page.evaluate(()=>document.activeElement.closest('[data-filter-choice]')?.dataset.filterChoice),'lineage');
+      assert.equal(await page.locator('[data-filter-choice="lot"]').getAttribute('open'),null,'Não abrir outro filtro ao selecionar');
+      assert.equal(await page.locator('[data-filter="lot"][value="B"]').count(),0,'Preservar cascata existente');
+      await page.locator('[data-filter-choice="lineage"] summary').click();await ensureOpen('lot');
+      await page.locator('[data-filter="lot"][value="A"]').check();
+      assert.notEqual(await page.locator('[data-filter-choice="lot"]').getAttribute('open'),null);
+      assert.equal(await page.locator('[data-filter-choice="lineage"]').getAttribute('open'),null,'Não abrir Linhagem ao selecionar Lote');
+      assert.equal(await page.locator('[data-filter-choice][open]').count(),1);
       await page.locator('#clearFilters').click();await ensureOpen('lot');await page.locator('[data-search="lot"]').fill('A');
       await page.locator('[data-select-all="lot"]').check();await ensureOpen('lot');
       assert.equal(await page.locator('[data-filter="lot"][value="A"]').isChecked(),true);assert.equal(await page.locator('[data-filter="lot"][value="B"]').isChecked(),false);
@@ -143,7 +145,8 @@ try {
         await page.locator('#clearFilters').click();assert.equal(await page.locator('[data-select-all]:checked').count(),0);assert.equal(await page.locator('[data-filter-choice][open]').count(),0);
       }
       await page.locator('[data-filter-choice="lineage"] summary').focus();await page.keyboard.press('Enter');await page.locator('[data-filter="lineage"]').first().focus();await page.keyboard.press('Space');
-      assert.notEqual(await page.locator('[data-filter-choice="lot"]').getAttribute('open'),null,'Seleção pelo teclado também abre o parceiro');
+      assert.notEqual(await page.locator('[data-filter-choice="lineage"]').getAttribute('open'),null,'Seleção pelo teclado mantém o filtro aberto');
+      assert.equal(await page.locator('[data-filter-choice="lot"]').getAttribute('open'),null);
       await page.locator('#clearFilters').click();await page.locator('.mz-layout').evaluate(el=>el.scrollTop=0);
       await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-filter-controls-mobile-light.png'))});
       await page.locator('[data-theme-toggle]').click();await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-filter-controls-mobile-dark.png'))});await page.locator('[data-theme-toggle]').click();
@@ -415,6 +418,6 @@ try {
   assert.match(await brokenPage.locator('#error').textContent(),/incompleta/);
   assert.equal(await brokenPage.locator('.mz-kpi strong').first().textContent(),'—');await broken.close();
   fs.writeFileSync(path.join(screenshotDir,'labels-metrics.json'),JSON.stringify(metrics,null,2));
-  if(filtersOnly)console.log('PASS: filtros das quatro telas; selecionar/desmarcar tudo, parcial, pesquisa visível, sticky, abertura vinculada, teclado, limpeza fixa e responsividade sem warnings');
+  if(filtersOnly)console.log('PASS: filtros das quatro telas; selecionar/desmarcar tudo, parcial, pesquisa visível, sticky, seleção mantém listas abertas, teclado, limpeza fixa e responsividade sem warnings');
   console.log(`PASS: 4 telas desktop/mobile, menu lateral e navegação, tema, filtros, dados, ampliação, 6 tabelas com todas as páginas, sessão ausente e paginação incompleta. ${examplePaths.length?'Exemplos reais dos anexos.':'Dados sintéticos.'}`);
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}

@@ -116,7 +116,7 @@ Os dropdowns são gerados por `filterChoice` em `matrizes-app.js`. Cada lista co
 
 Meses mantém suas caixas atuais, sem Selecionar tudo. Sexo continua selecionando exclusivamente Fêmeas ou Machos, conforme autorizado. Datas são controles de intervalo, sem seleção em massa.
 
-Linhagem e Lote ficam consecutivos, em linhas próprias no mobile. Selecionar uma opção (ou Selecionar tudo) fecha o filtro de origem e abre o parceiro, preservando a cascata existente. O foco segue para o título do parceiro sem forçar rolagem. O título de cada filtro abre sua própria lista; a troca acontece após a seleção, para que a primeira escolha seja possível. A abertura programática não dispara troca recíproca. Carregar o relatório e limpar filtros não abrem seletores.
+Linhagem e Lote ficam consecutivos, em linhas próprias no mobile. Como os demais seletores, permanecem abertos ao marcar ou desmarcar opções, inclusive Selecionar tudo, sem abrir outro filtro automaticamente. A cascata de opções e a posição de rolagem são preservadas. O título abre ou fecha a lista e Escape a fecha. Carregar o relatório e limpar filtros não abrem seletores.
 
 Limpar filtros faz parte do cabeçalho fixo à direita e mantém o estilo do Zootécnico. Em largura até 480 px, aparece como ícone com nome acessível. O reset mantém a rotina de dados existente (filtros, seleção temporária dos gráficos e período padrão); os seletores são fechados, a busca é esvaziada e os estados de seleção total/parcial recalculados. Sexo mantém sua escolha, como antes.
 

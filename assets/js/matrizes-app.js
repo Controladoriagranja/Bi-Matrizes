@@ -148,12 +148,6 @@
     control.indeterminate=count>0&&count<options.length;control.disabled=!options.length;
     control.setAttribute('aria-checked',control.indeterminate?'mixed':String(control.checked));
   }
-  function openLinkedFilter(key) {
-    const peer=key==='lineage'?'lot':key==='lot'?'lineage':null;if(!peer)return;
-    const target=document.querySelector(`[data-filter-choice="${peer}"]`);if(!target)return;
-    document.querySelector(`[data-filter-choice="${key}"]`).open=false;target.open=true;
-    target.querySelector('summary').focus({preventScroll:true});
-  }
   function clearFilters() {
     // Mesmo reset de dados e período; somente os estados visuais adicionais são limpos.
     state.chartSelection=null;state.filters={};state.start=defaultPeriod.start;state.end=defaultPeriod.end;
@@ -195,14 +189,14 @@
       <div class="mz-filter"><label for="endDate">Data final</label><input id="endDate" type="date" value="${escape(state.end)}" ${state.start?`min="${escape(state.start)}"`:''}></div>`;
     document.querySelectorAll('[data-filter-choice]').forEach(el=>{el.open=open.has(el.dataset.filterChoice);});
     document.querySelectorAll('[data-filter]').forEach(input=>input.addEventListener('change',()=>{
-      const set=selected(input.dataset.filter);input.checked?set.add(input.value):set.delete(input.value);reconcileFilters(input.dataset.filter);saveFilters();render();openLinkedFilter(input.dataset.filter);
+      const set=selected(input.dataset.filter);input.checked?set.add(input.value):set.delete(input.value);reconcileFilters(input.dataset.filter);saveFilters();render();
     }));
     document.querySelectorAll('[data-select-all]').forEach(control=>control.addEventListener('change',()=>{
       const key=control.dataset.selectAll,set=selected(key);
       const values=visibleOptions(key).map(el=>el.value);
       values.forEach(value=>control.checked?set.add(value):set.delete(value));
       reconcileFilters(key);
-      saveFilters();render();document.querySelector(`[data-select-all="${key}"]`)?.focus({preventScroll:true});openLinkedFilter(key);
+      saveFilters();render();document.querySelector(`[data-select-all="${key}"]`)?.focus({preventScroll:true});
     }));
     document.querySelectorAll('[data-filter-choice]').forEach(details=>details.addEventListener('keydown',event=>{
       if(event.key==='Escape'){event.preventDefault();event.stopPropagation();details.open=false;details.querySelector('summary').focus({preventScroll:true});}
