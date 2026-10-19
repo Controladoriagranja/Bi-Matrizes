@@ -16,7 +16,7 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
   </script>
   <link rel="stylesheet" href="assets/vendor/geist/index.css">
   <link rel="stylesheet" href="assets/css/zootecnico-base.css?v=20261008-filtros-abertos">
-  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261008-filtros-abertos">
+  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261019-dia-semana">
 </head>
 <body class="matrizes-page" data-page="${id}">
   <div id="matrizesApp"></div>
@@ -33,7 +33,8 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
   <script src="assets/js/matrizes-chart-labels.js?v=20261008-filtros-abertos"></script>
   <script src="assets/js/matrizes-chart-layout.js?v=20261008-filtros-abertos"></script>
   <script src="assets/js/matrizes-chart-style.js?v=20261008-filtros-abertos"></script>
-  <script src="assets/js/matrizes-app.js?v=20261008-filtros-abertos"></script>
+  <script src="assets/js/matrizes-period-drill.js?v=20261019-dia-semana"></script>
+  <script src="assets/js/matrizes-app.js?v=20261019-dia-semana"></script>
 </body>
 </html>
 `,'utf8');

@@ -9,6 +9,8 @@
   const filterLabels={year:'Ano',week:'Semana',farm:'Fazenda',lot:'Lote',house:'Galpão',lineage:'Linhagem',age:'Idade (semanas)',origin:'Origem',stage:'Estágio da incubadora',status:'Situação atual'};
   const state={rows:[],extra:[],metas:[],metasError:'',charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8,chartSelection:null};
   const defaultPeriod=D.previousTwoMonths();
+  const periodControls=new Map();
+  const isWeekly=spec=>(spec.group||page.group)==='week';
   state.start=defaultPeriod.start;state.end=defaultPeriod.end;
   const storageKey=`bi-matrizes-filtros-v3-${page.module}`;
   try {
@@ -60,11 +62,13 @@
   const filtered=(rows,extra=false,allPeriods=false)=>sexRows(rows).filter(row=>matches(row,extra?unavailableFilters(rows):null,allPeriods));
   const groupValue=(row,key)=>key==='monthPeriod'?row.date.slice(0,7):row[key];
   function points(rows,spec) {
-    const key=spec.group||page.group;
+    const control=periodControls.get(spec.id);
+    if(control){rows=MatrizesWeekDrill.visibleRows(rows,control.period,state.weekLimit,D);control.sync();}
+    const key=control?.period.mode==='dia'?'date':spec.group||page.group;
     const weekly=key==='week';
     const groups=spec.lifeWeeks?D.lifeWeekGroups(rows,spec.lifeWeeks.start,spec.lifeWeeks.end):D.chartGroups(rows,key,weekly?state.weekLimit:null);
     const referenceDates=spec.id==='cama'?new Map(D.group(state.rows,row=>groupValue(row,key)).map(([value,items])=>[String(value),D.periodReferenceDate(items)])):null;
-    return groups.map(([value,items])=>({filterKey:key,filterValue:String(value),label:groupLabel(value,key),...calc(items,spec.calc||page.calc),
+    return groups.map(([value,items])=>({filterKey:key,filterValue:String(value),label:control?.period.mode==='dia'?MatrizesWeekDrill.dayLabel(value,D):groupLabel(value,key),...calc(items,spec.calc||page.calc),
       ...(referenceDates?{bedStd:D.monthlyTarget(state.metas,'ovos_cama',referenceDates.get(String(value)))}:{})}));
   }
   function clearChartSelection() {
@@ -118,6 +122,13 @@
       const hidden=$(`table-${button.dataset.table}`).classList.toggle('hidden');button.setAttribute('aria-expanded',String(!hidden));
     }));
     document.querySelectorAll('[data-expand]').forEach(button=>button.addEventListener('click',()=>expand(button.dataset.expand)));
+    for(const spec of page.charts.filter(isWeekly)){
+      const control=MatrizesWeekDrill.create(spec.id,renderCharts);
+      periodControls.set(spec.id,control);
+      const card=$(`card-${spec.id}`);
+      card.querySelector('.mz-chart-actions').prepend(control.flags);
+      card.querySelector('.mz-chart-head').after(control.bar);
+    }
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExpanded();});
     window.addEventListener('resize',()=>state.charts.forEach(scheduleChartPresentation));
     document.addEventListener('dashboard:theme-changed',()=>renderCharts());
@@ -248,7 +259,8 @@
     let chart=state.charts.get(spec.id);
     if(!chart){
       chart=echarts.init($(`chart-${spec.id}`),null,{renderer:'svg'});state.charts.set(spec.id,chart);
-      chart.on('click',event=>{if(event.componentType==='series'&&Number.isInteger(event.dataIndex))selectChartPoint(chart.mzPoints?.[event.dataIndex]);});
+      if(periodControls.has(spec.id))periodControls.get(spec.id).bind(chart);
+      else chart.on('click',event=>{if(event.componentType==='series'&&Number.isInteger(event.dataIndex))selectChartPoint(chart.mzPoints?.[event.dataIndex]);});
       chart.getZr().on('click',event=>{if(!event.target)clearChartSelection();});
       chart.on('datazoom',()=>scheduleChartPresentation(chart));
       let previousSize='';
@@ -268,7 +280,7 @@
       tooltip:{trigger:'axis',backgroundColor:c.bg,borderColor:c.grid,textStyle:{color:c.fg,fontSize:13},formatter:params=>{const items=Array.isArray(params)?params:[params];const point=data[items[0]?.dataIndex];return `${escape(point?.label||'')}<br>${items.map(item=>{const series=spec.series[item.seriesIndex];const value=point?.[series.key];return `${item.marker}${escape(series.name)} (${escape(series.unit||unit)}): ${value==null?'Sem medição':MatrizesChartLayout.formatValue(value,series.unit||unit,series.digits??spec.digits??2)}`;}).join('<br>')}`;}},
       legend:{bottom:0,type:'scroll',formatter:name=>{const series=spec.series.find(item=>item.name===name);return pageId==='recria'?`${name} (${series?.unit||unit})`:name;},textStyle:{color:c.text,fontSize:11},itemWidth:13,itemHeight:7},
       grid:{top:65,left:12,right:hasSecond?12:18,bottom:data.length>24?66:38,containLabel:true},
-      xAxis:{type:'category',data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,hideOverlap:!spec.lifeWeeks,interval:spec.lifeWeeks?0:'auto'}},
+      xAxis:{type:'category',triggerEvent:periodControls.has(spec.id),data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:11,lineHeight:15,color:c.text,hideOverlap:!spec.lifeWeeks,interval:spec.lifeWeeks?0:'auto'}},
       yAxis:hasSecond?[axis,{...axis,position:'right',splitLine:{show:false},axisLabel:{...axis.axisLabel,formatter:v=>MatrizesChartLayout.formatValue(v,spec.series.find(s=>s.axis===1).unit||'%',spec.series.find(s=>s.axis===1).digits??1)}}]:axis,
       dataZoom:data.length>24?[{type:'inside',start:0,end:100},{type:'slider',height:13,bottom:22,borderColor:c.grid,textStyle:{color:c.text,fontSize:10}}]:[],
       graphic:hasData?[]:[{type:'text',left:'center',top:'middle',style:{text:state.loaded?'Sem dados para os filtros selecionados':'Aguardando dados da API',font:'14px "Geist Variable", sans-serif',fill:c.text}}],
@@ -277,7 +289,7 @@
     MatrizesChartLayout.flush(chart);
     scheduleChartPresentation(chart);
     $(`chart-${spec.id}`).setAttribute('aria-label',`${spec.title}. ${data.length} períodos. ${hasData?'Consulte os valores no botão Dados.':'Sem dados disponíveis.'}`);
-    $(`table-${spec.id}`).innerHTML=`<table class="mz-data-table"><caption class="hidden">${spec.title}</caption><thead><tr><th scope="col">${spec.axis}</th>${spec.series.map(s=>`<th scope="col">${escape(s.name)} (${s.unit||unit})</th>`).join('')}</tr></thead><tbody>${data.length?data.map(p=>`<tr><th scope="row">${escape(p.label)}</th>${spec.series.map(s=>`<td>${MatrizesChartLayout.formatValue(p[s.key],s.unit||unit,s.digits??spec.digits??2)+((s.unit||unit)==='%'?'':` ${s.unit||unit}`)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${spec.series.length+1}">Sem dados</td></tr>`}</tbody></table>`;
+    $(`table-${spec.id}`).innerHTML=`<table class="mz-data-table"><caption class="hidden">${spec.title}</caption><thead><tr><th scope="col">${spec.axis}</th>${spec.series.map(s=>`<th scope="col">${escape(s.name)} (${s.unit||unit})</th>`).join('')}</tr></thead><tbody>${data.length?data.map(p=>`<tr><th scope="row">${escape(p.filterKey==='date'?dayLabel(p.filterValue):p.label)}</th>${spec.series.map(s=>`<td>${MatrizesChartLayout.formatValue(p[s.key],s.unit||unit,s.digits??spec.digits??2)+((s.unit||unit)==='%'?'':` ${s.unit||unit}`)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${spec.series.length+1}">Sem dados</td></tr>`}</tbody></table>`;
     if(spec.visualShares)$(`caption-${spec.id}`).textContent='Proporção visual fixa: 70% Aproveitamento / 30% Perdas · Rótulos e tooltip: valores reais';
     if(spec.id==='descarte'||spec.id==='descarte-mes')$(`caption-${spec.id}`).textContent=`${spec.axis} · %${settings.discardTarget==null?' · Meta não configurada':''}`;
     if(spec.id==='incubacao')$(`caption-${spec.id}`).textContent=`${spec.axis} · ovos${settings.incubationTarget==null?' · Meta não configurada':''}`;
@@ -285,8 +297,12 @@
   function renderCharts() {
     page.charts.forEach(spec=>{
       const rows=filtered(spec.source==='extra'?state.extra:state.rows,spec.source==='extra',spec.allPeriods);
-      renderChart(spec,points(rows,spec));
-      if((spec.group||page.group)==='week'&&!spec.visualShares)$(`caption-${spec.id}`).textContent=`${spec.axis} · ${spec.unit||'%'} · ${state.weekLimit==null?'Todas as semanas':'Até 8 semanas'} do período selecionado`;
+      const data=points(rows,spec),control=periodControls.get(spec.id),daily=control?.period.mode==='dia';
+      renderChart(daily?{...spec,axis:'Dia',periodMode:'dia'}:spec,data);
+      if(isWeekly(spec)){
+        const periodText=daily?(control.period.drilledWeek?'Dias da semana selecionada':`Dias de ${state.weekLimit==null?'todas as semanas':'até 8 semanas'} do período selecionado`):`${state.weekLimit==null?'Todas as semanas':'Até 8 semanas'} do período selecionado`;
+        $(`caption-${spec.id}`).textContent=(spec.visualShares?'Proporção visual fixa: 70% Aproveitamento / 30% Perdas · Rótulos e tooltip: valores reais · ':`${daily?'Dia':spec.axis} · ${spec.unit||'%'} · `)+periodText;
+      }
       if(spec.allPeriods)$(`caption-${spec.id}`).textContent=`${spec.axis} · ${state.complete?'Histórico completo':'Histórico parcial em carregamento'}, independente do período selecionado`;
       if(spec.source==='extra'){
         const ignored=[...unavailableFilters(state.extra)].filter(key=>selected(key).size).map(key=>filterLabels[key]);

@@ -78,6 +78,21 @@ html::-webkit-scrollbar-thumb, .mz-filters::-webkit-scrollbar-thumb, .side-nav-p
 .mz-chart-head h2 { font-size:15px; margin:0 0 6px; font-weight:650; }
 .mz-chart-head p { color:var(--muted-foreground); font-size:11px; margin:0; }
 .mz-chart-actions { display:flex; gap:5px; }
+/* Dia | Semana: mesmo padrão segmentado do PCP, com identidade do Matrizes. */
+.mz-chart-head:has(.mz-period-flags){flex-wrap:wrap;align-items:flex-start}
+.mz-chart-head:has(.mz-period-flags)>div:first-child{flex:1 1 180px;min-width:0}
+.mz-chart-head:has(.mz-period-flags) .mz-chart-actions{margin-left:auto;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:100%}
+.mz-chart-head:has(.mz-period-flags) .mz-chart-actions>button{min-height:30px;white-space:nowrap}
+.mz-period-flags{display:inline-flex;gap:0;margin:0;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--secondary);min-width:0;height:30px;box-sizing:border-box;flex-shrink:0}
+.mz-period-flags legend{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.mz-period-flags label{position:relative;display:flex;align-items:center;justify-content:center;min-width:44px;padding:0 9px;border-radius:5px;font-size:11px;font-weight:600;line-height:1;color:var(--muted-foreground);cursor:pointer}
+.mz-period-flags input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.mz-period-flags label:has(input:checked){background:var(--card);color:var(--primary);box-shadow:0 1px 4px #0002}
+.mz-period-flags label:has(input:focus-visible){outline:2px solid #e8913b;outline-offset:2px}
+.mz-week-drill{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:9px 0 0;font-size:10px;line-height:1.5;color:var(--muted-foreground);flex:none}
+.mz-week-drill[hidden],.mz-drill-back[hidden]{display:none}
+.mz-drill-back{border:1px solid var(--border);border-radius:5px;padding:4px 7px;background:var(--card);color:var(--primary);font:inherit;cursor:pointer}
+@media(max-width:480px){.mz-chart-head:has(.mz-period-flags)>div:first-child{flex-basis:100%}.mz-chart-head:has(.mz-period-flags) .mz-chart-actions{width:100%;justify-content:flex-end}.mz-period-flags label{padding:0 8px;min-width:42px}}
 .mz-chart-actions button { cursor:pointer; background:transparent; color:var(--muted-foreground); border:1px solid var(--border); border-radius:5px; padding:4px 6px; font-size:11px; }
 .mz-chart { height:285px; margin-top:8px; }
 .mz-chart-card.wide .mz-chart { height:305px; }
