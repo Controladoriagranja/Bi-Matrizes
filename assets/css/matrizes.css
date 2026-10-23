@@ -174,3 +174,15 @@ body.mz-expanded .mz-layout, body.side-nav-open .mz-layout { overflow:hidden; }
   .mz-clear-top { padding:8px; min-width:40px; justify-content:center; }
   .mz-clear-label { display:none; }
 }
+
+/* Origem: flags exclusivas da tela Incubatorio. */
+.mz-origin-filter{min-width:0;padding:0;border:0}
+.mz-origin-filter legend{font-size:12px;font-weight:600;color:var(--muted-foreground);margin-bottom:8px;padding:0}
+.mz-origin-flags{display:flex;flex-wrap:wrap;gap:6px}
+.mz-origin-flags label{display:flex;align-items:center;gap:6px;flex:1 1 75px;padding:9px 7px;border:1px solid var(--border);border-radius:7px;background:var(--card);color:var(--muted-foreground);font-size:12px;cursor:pointer}
+.mz-origin-flags label.active{color:var(--primary);border-color:var(--primary);background:color-mix(in srgb,var(--primary) 9%,var(--card))}
+.mz-origin-flags input{accent-color:var(--primary);margin:0;flex-shrink:0}
+.mz-origin-flags label:has(input:disabled){opacity:.5;cursor:default}
+.mz-egg-summary{font-size:12px;color:var(--muted-foreground);line-height:1.6;margin:12px 0}
+.mz-egg-records thead th{position:sticky;top:0;z-index:1}
+.mz-egg-records td:nth-child(3),.mz-egg-records td:nth-child(4),.mz-egg-records td:nth-child(5),.mz-egg-records td:nth-child(6){text-align:left}

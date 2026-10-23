@@ -7,7 +7,10 @@
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const filterLabels={year:'Ano',week:'Semana',farm:'Fazenda',lot:'Lote',house:'Galpão',lineage:'Linhagem',age:'Idade (semanas)',origin:'Origem',stage:'Estágio da incubadora',status:'Situação atual'};
-  const state={rows:[],extra:[],metas:[],metasError:'',charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8,chartSelection:null};
+  const eggOrigin=pageId==='incubatorio'?window.MatrizesEggOrigin:null;
+  if(eggOrigin)filterLabels.origin='Origem dos ovos';
+  const state={rows:[],extra:[],inc:[],metas:[],metasError:'',charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8,chartSelection:null};
+  const allRows=()=>[...state.rows,...state.extra,...state.inc];
   const defaultPeriod=D.previousTwoMonths();
   const periodControls=new Map();
   const isWeekly=spec=>(spec.group||page.group)==='week';
@@ -21,6 +24,7 @@
       Object.entries(saved.filters||{}).forEach(([key,values])=>{if(Array.isArray(values))state.filters[key]=new Set(values.map(String));});
     }
   } catch (_) { /* A sessão pode impedir armazenamento. */ }
+  if(eggOrigin&&state.filters.origin)state.filters.origin=new Set([...state.filters.origin].map(eggOrigin.canonical).filter(Boolean));
   const selected=key=>state.filters[key]||(state.filters[key]=new Set());
   function saveFilters() {
     state.hasSavedFilters=true;
@@ -42,7 +46,7 @@
     return String(value);
   }
   function calc(rows,kind=page.calc) {
-    let result=kind==='recria'?D.recria(rows,state.sex):D[kind](rows);
+    let result=kind==='eggUse'?eggOrigin.average(rows,D):kind==='recria'?D.recria(rows,state.sex):D[kind](rows);
     return {...result,discardTarget:settings.discardTarget,incubationTarget:settings.incubationTarget};
   }
   function sexRows(rows) {
@@ -58,8 +62,9 @@
     if(state.chartSelection&&String(groupValue(row,state.chartSelection.key))!==state.chartSelection.value)return false;
     return allPeriods||(!state.start||row.date>=state.start)&&(!state.end||row.date<=state.end);
   }
-  const unavailableFilters=rows=>new Set(page.filters.filter(key=>key!=='sex'&&!rows.some(row=>row[key]!==''&&row[key]!=null)));
+  const unavailableFilters=rows=>new Set(page.filters.filter(key=>key!=='sex'&&!(eggOrigin&&key==='origin')&&!rows.some(row=>row[key]!==''&&row[key]!=null)));
   const filtered=(rows,extra=false,allPeriods=false)=>sexRows(rows).filter(row=>matches(row,extra?unavailableFilters(rows):null,allPeriods));
+  const chartRows=spec=>filtered(spec.source==='inc'?state.inc:spec.source==='extra'?state.extra:state.rows,spec.source==='extra',spec.allPeriods);
   const groupValue=(row,key)=>key==='monthPeriod'?row.date.slice(0,7):row[key];
   function points(rows,spec) {
     const control=periodControls.get(spec.id);
@@ -97,7 +102,7 @@
           <div class="mz-week-controls" ${pageId==='recria'?'hidden':''}><span id="weekLimitCaption">Até 8 Semanas por Gráfico</span><button id="toggleWeeks" class="mz-button" aria-pressed="false">Mostrar Todas as Semanas</button></div>
           <div id="chartSelectionStatus" class="mz-selection-status hidden" role="status"></div>
           <section class="mz-charts" aria-label="Gráficos">${page.charts.map((spec,index)=>`${spec.section&&spec.section!==page.charts[index-1]?.section?`<h2 class="mz-section-title">${spec.section}</h2>`:''}
-            <article class="mz-chart-card ${spec.wide?'wide':''}" id="card-${spec.id}"><div class="mz-chart-head"><div><h2>${spec.title}</h2><p id="caption-${spec.id}">${spec.axis} · ${spec.unit||'Percentual'}</p></div><div class="mz-chart-actions"><button type="button" data-table="${spec.id}" aria-expanded="false" aria-controls="table-${spec.id}">Dados</button><button type="button" data-expand="${spec.id}" aria-label="Ampliar ${spec.title}" aria-expanded="false">⤢</button></div></div><div id="chart-${spec.id}" class="mz-chart" role="img" aria-label="${spec.title}. Os valores estão disponíveis no botão Dados."></div><div id="table-${spec.id}" class="mz-table-wrap hidden"></div></article>`).join('')}</section>
+            <article class="mz-chart-card ${spec.wide?'wide':''}" id="card-${spec.id}"><div class="mz-chart-head"><div><h2>${spec.title}</h2><p id="caption-${spec.id}">${spec.axis} · ${spec.unit||'Percentual'}</p></div><div class="mz-chart-actions">${spec.calc==='eggUse'?`<button type="button" class="mini-button" data-egg-formula="${spec.id}" aria-label="Ver fórmula de ${spec.title}" title="Ver fórmula"><span class="formula-fx">ƒx</span></button>`:''}<button type="button" data-table="${spec.id}" aria-expanded="false" aria-controls="table-${spec.id}">Dados</button><button type="button" data-expand="${spec.id}" aria-label="Ampliar ${spec.title}" aria-expanded="false">⤢</button></div></div><div id="chart-${spec.id}" class="mz-chart" role="img" aria-label="${spec.title}. Os valores estão disponíveis no botão Dados."></div><div id="table-${spec.id}" class="mz-table-wrap hidden"></div></article>`).join('')}${eggOrigin?`<article class="mz-chart-card wide" id="card-ovos-registros"><div class="mz-chart-head"><div><h2>Aproveitamento de ovos — registros</h2><p>Recebimento · Registros do período selecionado</p></div><div class="mz-chart-actions"><button type="button" class="mini-button" data-egg-formula="registros" aria-label="Ver fórmula do aproveitamento de ovos" title="Ver fórmula"><span class="formula-fx">ƒx</span></button></div></div><p class="mz-egg-summary" id="eggSummary"></p><div id="eggRecords" class="mz-table-wrap"></div></article>`:''}</section>
 
           <footer class="mz-footer"><span id="periodCaption">Selecione o contexto nos filtros.</span></footer>
         </main>
@@ -107,6 +112,16 @@
     new ResizeObserver(resizeHeader).observe(header);resizeHeader();
     if(window.ThemeManager)document.querySelector('[data-theme-icon]').textContent=ThemeManager.get()==='dark'?'☀':'☾';
     $('kpis').addEventListener('click',event=>{const button=event.target.closest('[data-formula]');if(button)MatrizesFormulaUI.open({key:button.dataset.formula,page,sex:state.sex,rows:filtered(state.rows),value:D.simpleIndicators(filtered(state.rows),page.calc,state.sex)[button.dataset.formula]});});
+    document.querySelectorAll('[data-egg-formula]').forEach(button=>button.addEventListener('click',()=>{
+      const spec=page.charts.find(item=>item.id===button.dataset.eggFormula);
+      let rows=spec?chartRows(spec):filtered(state.inc);
+      if(spec){
+        const visible=state.charts.get(spec.id)?.mzPoints||[],key=visible[0]?.filterKey;
+        const values=new Set(visible.map(point=>point.filterValue));
+        rows=rows.filter(row=>key&&values.has(String(groupValue(row,key))));
+      }
+      MatrizesFormulaUI.openEggUse({rows,value:eggOrigin.average(rows,D).eggUse});
+    }));
     $('refresh').addEventListener('click',load);
     $('clearFilters').addEventListener('click',clearFilters);
     $('chartSelectionStatus').addEventListener('click',clearChartSelection);
@@ -165,6 +180,10 @@
     document.querySelectorAll('[data-filter-choice]').forEach(el=>el.open=false);
     document.querySelectorAll('[data-search]').forEach(el=>el.value='');saveFilters();render();
   }
+  function originFlags(rows) {
+    const available=new Set(rows.map(row=>row.origin)),sel=selected('origin');
+    return `<fieldset class="mz-filter mz-origin-filter"><legend>Origem dos ovos</legend><div class="mz-origin-flags">${['Própria','Terceiros'].map(value=>`<label class="${sel.has(value)?'active':''}"><input type="checkbox" data-filter="origin" value="${value}" ${sel.has(value)?'checked':''} ${state.complete&&!available.has(value)&&!sel.has(value)?'disabled':''}><span>${value}</span></label>`).join('')}</div></fieldset>`;
+  }
   function filterChoice(key,rows) {
     const values=[...new Set(rows.map(r=>String(r[key]??'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
     if(!values.length&&['stage','origin','status','house','lineage'].includes(key))return '';
@@ -174,7 +193,7 @@
     return `<div class="mz-filter ${['lineage','lot'].includes(key)?'mz-linked-filter':''}"><span id="label-${key}">${label}</span><details class="mz-choice" data-filter-choice="${key}"><summary aria-labelledby="label-${key}">${sel.size?`${sel.size} selecionado(s)`:'Todos'}</summary><div class="mz-options">${selectAllControl(key)}${['lot','farm'].includes(key)?`<input class="mz-search" data-search="${key}" type="search" placeholder="Pesquisar ${label.toLowerCase()}" aria-label="Pesquisar ${label.toLowerCase()}">`:''}${allValues.length?allValues.map(value=>`<label><input type="checkbox" data-filter="${key}" value="${escape(value)}" ${sel.has(value)?'checked':''}><span>${escape(display(value))}</span></label>`).join(''):'<p class="mz-unavailable">Sem opções</p>'}</div></details></div>`;
   }
   function reconcileFilters(changed) {
-    const rows=sexRows([...state.rows,...state.extra]);
+    const rows=sexRows(allRows());
     const context=rows.filter(row=>!selected(changed).size||selected(changed).has(String(row[changed]??'')));
     for(const [key,values] of Object.entries(state.filters)) {
       if(key===changed)continue;
@@ -188,13 +207,13 @@
     const active=document.activeElement;
     const focus=active?.matches('[data-filter]')?{key:active.dataset.filter,value:active.value}:null;
     const searches=Object.fromEntries([...document.querySelectorAll('[data-search]')].map(el=>[el.dataset.search,el.value]));
-    const rows=sexRows([...state.rows,...state.extra]);
+    const rows=sexRows(allRows());
     const choices=key=>filterChoice(key,rows.filter(row=>matches(row,key)));
 
-    const orderedFilters=page.filters.flatMap(key=>key==='lineage'&&page.filters.includes('lot')?[]:key==='lot'&&page.filters.includes('lineage')?['lineage','lot']:[key]);
+    const orderedFilters=page.filters.filter(key=>!eggOrigin||key!=='origin').flatMap(key=>key==='lineage'&&page.filters.includes('lot')?[]:key==='lot'&&page.filters.includes('lineage')?['lineage','lot']:[key]);
     $('filterFields').innerHTML=choices('year')+`
       <div class="mz-filter"><span>Meses</span><div class="mz-months">${months.map((label,i)=>`<button type="button" data-month="${i+1}" class="${selected('month').has(String(i+1))?'active':''}" aria-pressed="${selected('month').has(String(i+1))}">${label}</button>`).join('')}</div></div>`+
-      choices('week')+orderedFilters.map(key=>key==='sex'?`
+      choices('week')+(eggOrigin?originFlags(rows.filter(row=>matches(row,'origin'))):'')+orderedFilters.map(key=>key==='sex'?`
         <div class="mz-filter"><span>Sexo</span><div class="mz-sex">${[['femeas','Fêmeas'],['machos','Machos']].map(([value,label])=>`<button type="button" data-sex="${value}" class="${state.sex===value?'active':''}" aria-pressed="${state.sex===value}">${label}</button>`).join('')}</div></div>`:choices(key)).join('')+`
       <div class="mz-filter"><label for="startDate">Data inicial</label><input id="startDate" type="date" value="${escape(state.start)}" ${state.end?`max="${escape(state.end)}"`:''}></div>
       <div class="mz-filter"><label for="endDate">Data final</label><input id="endDate" type="date" value="${escape(state.end)}" ${state.start?`min="${escape(state.start)}"`:''}></div>`;
@@ -296,7 +315,7 @@
   }
   function renderCharts() {
     page.charts.forEach(spec=>{
-      const rows=filtered(spec.source==='extra'?state.extra:state.rows,spec.source==='extra',spec.allPeriods);
+      const rows=chartRows(spec);
       const data=points(rows,spec),control=periodControls.get(spec.id),daily=control?.period.mode==='dia';
       renderChart(daily?{...spec,axis:'Dia',periodMode:'dia'}:spec,data);
       if(isWeekly(spec)){
@@ -304,28 +323,40 @@
         $(`caption-${spec.id}`).textContent=(spec.visualShares?'Proporção visual fixa: 70% Aproveitamento / 30% Perdas · Rótulos e tooltip: valores reais · ':`${daily?'Dia':spec.axis} · ${spec.unit||'%'} · `)+periodText;
       }
       if(spec.allPeriods)$(`caption-${spec.id}`).textContent=`${spec.axis} · ${state.complete?'Histórico completo':'Histórico parcial em carregamento'}, independente do período selecionado`;
+      if(spec.calc==='eggUse')$(`caption-${spec.id}`).textContent+=' · Média simples dos percentuais';
       if(spec.source==='extra'){
         const ignored=[...unavailableFilters(state.extra)].filter(key=>selected(key).size).map(key=>filterLabels[key]);
         if(ignored.length)$(`caption-${spec.id}`).textContent+=` · ${ignored.join(' / ')} indisponível nesta fonte`;
       }
     });
   }
+  function renderEggRecords() {
+    const rows=filtered(state.inc).slice().sort((a,b)=>a.date.localeCompare(b.date)||a.farm.localeCompare(b.farm,'pt-BR')||a.lot.localeCompare(b.lot,'pt-BR',{numeric:true}));
+    const columns=['Recebimento','Semana','Origem dos ovos','Fazenda','Lote','Linhagem','Idade (semanas)','Total de ovos','Ovos incubáveis','Ovos incubáveis (%)'];
+    $('eggSummary').textContent=`${rows.length.toLocaleString('pt-BR')} registros · Média dos percentuais: ${format(eggOrigin.average(rows,D).eggUse,'%',2)}`;
+    $('eggRecords').innerHTML=`<table class="mz-data-table mz-egg-records"><caption class="hidden">Aproveitamento de ovos por registro</caption><thead><tr>${columns.map(name=>`<th scope="col">${name}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr><th scope="row">${dayLabel(row.date)}</th><td>${escape(groupLabel(row.week,'week'))}</td><td>${escape(row.origin||'—')}</td><td>${escape(row.farm)}</td><td>${escape(row.lot)}</td><td>${escape(row.lineage)}</td><td>${format(row.age,'',0)}</td><td>${format(D.n(row.raw.total),'',0)}</td><td>${format(D.n(row.raw.ovos_incubaveis),'',0)}</td><td>${format(D.n(row.raw.ovos_incubaveis_pct),'%',2)}</td></tr>`).join(''):`<tr><td colspan="10">Sem dados para os filtros selecionados</td></tr>`}</tbody></table>`;
+  }
   function render() {
     const rows=filtered(state.rows);
     
-    renderFilters();renderKpis(rows);renderCharts();
+    renderFilters();renderKpis(rows);renderCharts();if(eggOrigin)renderEggRecords();
     const selection=state.chartSelection;
     $('chartSelectionStatus').classList.toggle('hidden',!selection);
     $('chartSelectionStatus').replaceChildren();
     if(selection){const button=document.createElement('button');button.className='mz-button';button.textContent=`${selection.key==='age'?'Semana de vida':filterLabels[selection.key]||'Período'}: ${selection.label} · Limpar seleção ×`;$('chartSelectionStatus').append(button);}
 
-    $('recordCount').textContent=state.loaded?`${rows.length.toLocaleString('pt-BR')} de ${state.rows.length.toLocaleString('pt-BR')} registros${page.extraTable?` · ${filtered(state.extra,true).length.toLocaleString('pt-BR')} registros ${page.extraTable==='incubacao'?'de incubação':'da curva'}`:''}`:'—';
+    $('recordCount').textContent=state.loaded?`${rows.length.toLocaleString('pt-BR')} de ${state.rows.length.toLocaleString('pt-BR')} registros${page.extraTable?` · ${filtered(state.extra,true).length.toLocaleString('pt-BR')} registros ${page.extraTable==='incubacao'?'de incubação':'da curva'}`:''}${eggOrigin?` · ${filtered(state.inc).length.toLocaleString('pt-BR')} registros de aproveitamento`:''}`:'—';
     const dates=rows.map(r=>r.date).sort();
     $('periodCaption').textContent=dates.length?`Período: ${dayLabel(dates[0])} a ${dayLabel(dates.at(-1))}. Percentuais calculados pelas quantidades do período.`:'Sem registros no contexto selecionado.';
     const messages=[];
     if(state.metasError)messages.push(`Meta / STD de ovos de cama indisponível: ${state.metasError}`);
     if(state.loaded&&page.extraTable==='incubacao'&&filtered(state.extra,true).some(r=>D.stockDays(r.raw.dias_estoque).length!==1))messages.push('Estoque médio indisponível nos períodos com várias idades de ovos na mesma linha. O mínimo e o máximo usam as idades informadas; a média exige a quantidade de ovos de cada idade.');
     if(state.loaded&&page.extraTable==='acerto_produtor_producao')messages.push('A curva por lote usa o histórico do Acerto do Produtor; o gráfico diário usa os registros de produção da granja. Selecione um lote para acompanhar sua curva individual.');
+    if(eggOrigin&&state.loaded){
+      const skip=unavailableFilters(state.extra);skip.add('origin');
+      const missing=state.extra.filter(row=>!row.origin&&matches(row,skip)).length;
+      if(missing)messages.push(`${missing.toLocaleString('pt-BR')} registro(s) de incubação sem origem identificada em inc. Permanecem na visão sem filtro de origem e ficam fora quando uma origem é marcada.`);
+    }
     $('notice').textContent=messages.join(' ');$('notice').classList.toggle('hidden',!messages.length);
 
   }
@@ -361,18 +392,20 @@
       const machine=settings.machines.find(m=>String(m.empresa)===row.company&&String(m.unidade)===row.unit&&String(m.maquina)===row.machine);
       const origin=settings.lotOrigins.find(m=>String(m.empresa)===row.company&&String(m.unidade)===row.unit&&String(m.lote)===row.lot);
       if(machine)row.stage=machine.estagio;
-      if(!row.origin&&origin)row.origin=origin.origem;
+      if(!eggOrigin&&!row.origin&&origin)row.origin=origin.origem;
     }
     return rows;
   }
   async function load() {
     state.controller?.abort();const controller=new AbortController();state.controller=controller;
     const timeout=setTimeout(()=>controller.abort('timeout'),120000);
-    $('refresh').disabled=true;$('error').classList.add('hidden');state.loaded=false;state.complete=false;state.rows=[];state.extra=[];state.metas=[];state.metasError='';
+    $('refresh').disabled=true;$('error').classList.add('hidden');state.loaded=false;state.complete=false;state.rows=[];state.extra=[];state.inc=[];state.metas=[];state.metasError='';
     $('ultimaAtualizacao').textContent='—';$('loadStatus').textContent='Conectando ao Worker';render();
     try {
       const progress=(key,table)=>(rows,count,total)=>{
         if(state.controller!==controller||controller.signal.aborted)return;
+        // A referencia completa de inc deve chegar antes de exibir dados classificados.
+        if(eggOrigin){$('loadStatus').textContent=`Carregando ${table}: ${count.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')}`;return;}
         state[key]=key==='extra'?D.preferDaily(rows):rows;
         state.loaded=true;
         $('loadStatus').textContent=`Prévia parcial do período selecionado · ${table}: ${count.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} · carregando histórico`;
@@ -380,25 +413,33 @@
       };
       const tasks=[loadTable(page.table,controller.signal,progress('rows',page.table))];
       if(page.extraTable)tasks.push(loadTable(page.extraTable,controller.signal,progress('extra',page.extraTable)));
+      if(eggOrigin)tasks.push(loadTable('inc',controller.signal,progress('inc','inc')));
       const metasTask=pageId==='producao'?loadTable('metas',controller.signal,null,{transform:records=>records.filter(row=>!Object.hasOwn(row,'ativo')||row.ativo===true),size:25}).then(records=>{state.metas=records;}).catch(error=>{
         if(controller.signal.aborted)throw error;
         state.metasError=error.message;
       }):Promise.resolve();
       const results=await Promise.all([...tasks,metasTask]);
+      if(state.controller!==controller||controller.signal.aborted)return;
       state.rows=results[0];if(page.extraTable)state.extra=D.preferDaily(results[1]);
+      if(eggOrigin){
+        state.inc=results[2];
+        const reference=eggOrigin.buildReference(state.inc);
+        for(const row of [...state.rows,...state.inc])row.origin=eggOrigin.canonical(row.raw.origem);
+        for(const row of state.extra)row.origin=eggOrigin.resolve(row,reference);
+      }
       state.loaded=true;
       if(pageId==='producao')selected('year').delete('2025');
       const supported=new Set(['year','month','week',...page.filters]);
       for(const key of Object.keys(state.filters)) {
-        if(!supported.has(key)||!state.rows.concat(state.extra).some(r=>r[key]!==''&&r[key]!=null))delete state.filters[key];
+        if(!supported.has(key)||(!(eggOrigin&&key==='origin')&&!allRows().some(r=>r[key]!==''&&r[key]!=null)))delete state.filters[key];
       }
 
-      const latestLoad=[...state.rows,...state.extra].map(r=>D.text(r.raw.carregado_em)).filter(Boolean).sort().at(-1);
+      const latestLoad=allRows().map(r=>D.text(r.raw.carregado_em)).filter(Boolean).sort().at(-1);
       $('ultimaAtualizacao').textContent=latestLoad?`${dayLabel(latestLoad.slice(0,10))} · ${latestLoad.slice(11,19)}`:'Não informada';
       state.complete=true;$('loadStatus').textContent='Dados carregados · histórico completo';render();
     } catch(error) {
       if(state.controller!==controller)return;
-      controller.abort();state.rows=[];state.extra=[];state.loaded=false;$('loadStatus').textContent='Consulta indisponível';
+      controller.abort();state.rows=[];state.extra=[];state.inc=[];state.loaded=false;$('loadStatus').textContent='Consulta indisponível';
       $('error').textContent=controller.signal.reason==='timeout'?'A consulta excedeu o tempo de espera. Tente atualizar novamente.':error.message;
       $('error').classList.remove('hidden');render();
     } finally {clearTimeout(timeout);if(state.controller===controller)$('refresh').disabled=false;}

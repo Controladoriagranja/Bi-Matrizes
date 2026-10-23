@@ -63,6 +63,10 @@
   pages.incubatorio.title='Incubatório';
   pages.incubatorio.subtitle='Eclosão, descarte, faixas etárias, incubação e estoque dos ovos.';
   pages.incubatorio.charts=[...pages.incubatorio.charts.map(chart=>({...chart,section:'Eclosão e descarte'})),...hatchHistory,...incubationCharts];
+  pages.incubatorio.charts.push(
+    {id:'ovos-aproveitamento',title:'Aproveitamento de ovos por semana',axis:'Semana de recebimento',source:'inc',calc:'eggUse',group:'week',section:'Aproveitamento de ovos',series:[series('eggUse','Ovos incubáveis','bar')]},
+    {id:'ovos-aproveitamento-mes',title:'Aproveitamento de ovos por mês',axis:'Mês de recebimento',source:'inc',calc:'eggUse',group:'monthPeriod',section:'Aproveitamento de ovos',series:[series('eggUse','Ovos incubáveis','bar')]}
+  );
   // Tipos de apresentação independentes dos cálculos.
   for(const page of [pages.recria,pages.producao,pages.incubatorio,pages.embrio]) {
     for(const chart of page.charts) {

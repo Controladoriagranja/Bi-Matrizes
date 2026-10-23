@@ -8,12 +8,15 @@
     embryo:{unhatched:'100 × nao_eclodidos ÷ incubados',infertile:'100 × qtde ÷ total_analisado',contaminated:'100 × (qtde_9 + qtde_10) ÷ total_analisado',final:'100 × qtde_4 ÷ total_analisado'}
   };
   let dialog;
-  function open({key,page,sex,rows,value}) {
+  function ensureDialog() {
     if(!dialog){
       dialog=document.createElement('dialog');dialog.className='mz-formula-dialog';dialog.setAttribute('aria-labelledby','mzFormulaTitle');
       document.body.append(dialog);
       dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
     }
+  }
+  function open({key,page,sex,rows,value}) {
+    ensureDialog();
     const title=page.kpis.find(item=>item[0]===key)?.[1]||key;
     const source=page.calc==='recria'?D.recriaFields(sex)[key]:sources[page.calc]?.[key];
     const values=rows.map(row=>D.simpleIndicators([row],page.calc,sex)[key]).filter(value=>Number.isFinite(value));
@@ -27,5 +30,17 @@
     }
     dialog.showModal();
   }
-  window.MatrizesFormulaUI={open};
+  function openEggUse({rows,value}) {
+    ensureDialog();dialog.replaceChildren();
+    const values=rows.map(row=>D.n(row.raw.ovos_incubaveis_pct)).filter(value=>value!=null);
+    const format=number=>number==null?'—':number.toLocaleString('pt-BR',{maximumFractionDigits:2});
+    const heading=document.createElement('h2');heading.id='mzFormulaTitle';heading.textContent='Aproveitamento de ovos';
+    const close=document.createElement('button');close.className='mz-button';close.textContent='Fechar';close.addEventListener('click',()=>dialog.close());
+    dialog.append(heading,close);
+    for(const text of ['Média simples dos percentuais prontos','Fonte: matrizes.inc · coluna ovos_incubaveis_pct','Em cada dia, semana ou mês: soma dos percentuais válidos dos registros ÷ quantidade de percentuais válidos.',`Consulta atual: ${values.length} percentuais válidos entre ${rows.length} registros filtrados.`,`${format(values.reduce((sum,item)=>sum+item,0))} ÷ ${values.length} = ${format(value)}%`,'Cada registro tem o mesmo peso. Valores nulos são excluídos; zero é um percentual válido. O percentual de cada registro é preservado, sem recalcular pelas quantidades de ovos.']) {
+      const paragraph=document.createElement('p');paragraph.textContent=text;dialog.append(paragraph);
+    }
+    dialog.showModal();
+  }
+  window.MatrizesFormulaUI={open,openEggUse};
 })();

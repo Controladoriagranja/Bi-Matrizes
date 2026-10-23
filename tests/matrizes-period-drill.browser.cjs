@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
-const root=path.resolve(__dirname,'..'),fixtures={granja:[],acerto_produtor_producao:[],acerto_produtor_recria:[],eclosao:[],incubacao:[],embrio:[],metas:[]};
+const root=path.resolve(__dirname,'..'),fixtures={granja:[],acerto_produtor_producao:[],acerto_produtor_recria:[],eclosao:[],incubacao:[],inc:[],embrio:[],metas:[]};
 for(let i=0;i<95;i++)for(let lot=0;lot<2;lot++){
  const date=new Date(Date.UTC(2026,6,i+1)).toISOString().slice(0,10),id=i*2+lot+1;
  const common={id,data:date,lote:lot?'B':'A',granja:'FAZENDA TESTE',galpao:'01',linhagem:lot?'HUBBARD':'COBB',idade:lot?52:30,empresa_codigo:'2',unidade_codigo:'1',carregado_em:'2026-10-03T10:00:00'};
@@ -9,6 +9,7 @@ for(let i=0;i<95;i++)for(let lot=0;lot<2;lot++){
  fixtures.acerto_produtor_producao.push({...common,ini_semana:date,cab_lote:common.lote,cab_granja:common.granja,saldo_femea:weight,producao:70,producao_std:68,tipo_movto:'Diário'});
  fixtures.eclosao.push({...common,eclosao:date,quantid:weight,nascidos:weight*.8,descarte:weight*.01,eclosao_std:85});
  fixtures.incubacao.push({...common,data_incubacao:date,quantidade:weight,dias_estoque:lot?'04-':'02-'});
+ fixtures.inc.push({...common,recebimento:date,origem:'Próprio',ovos_incubaveis_pct:lot?80:100});
  fixtures.embrio.push({...common,incubados:weight,nascidos:weight*.8,nao_eclodidos:weight*.2,total_analisado:weight,qtde:5,std:4,qtde_2:3,std_2:4,qtde_3:1,std_3:.5,qtde_4:5,std_4:4,qtde_7:1,qtde_8:1,qtde_9:1,qtde_10:0,std_9:.75,std_10:0});
 }
 for(const m of [7,8,9,10])fixtures.metas.push({id:m,indicador_codigo:'ovos_cama',referencia_mes:`2026-${String(m).padStart(2,'0')}-01`,valor_meta:m,ativo:true});
@@ -33,7 +34,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
    for(const [id,value] of [['startDate','2026-07-01'],['endDate','2026-10-03']]){await page.locator('#'+id).fill(value);await page.locator('#'+id).dispatchEvent('change');}
    await page.evaluate(data=>window.__testFixtures=data,fixtures);await settle();
    const ids=await page.locator('.mz-chart-card:has(.mz-period-flags)').evaluateAll(cards=>cards.map(c=>c.id.slice(5)));
-   assert.equal(ids.length,file==='producao.html'?4:file==='incubatorio.html'?5:7);
+   assert.equal(ids.length,file==='producao.html'?4:file==='incubatorio.html'?6:7);
    for(const id of ids){
     const weekly=await chartData(id);assert.equal(weekly.points.length,8);
     const card=page.locator('#card-'+id),flags=card.locator('.mz-period-flags');
@@ -49,8 +50,8 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
     await flags.locator('input[value=dia]').check();const daily=await chartData(id);assert.ok(daily.points.length>8);
     const bad=await page.locator('#chart-'+id).evaluate(el=>{
      const c=echarts.getInstanceByDom(el),D=MatrizesData,spec=c.mzSpec,p=MatrizesPages[document.body.dataset.page];
-     const raw=__testFixtures[spec.source==='extra'?p.extraTable:p.table],all=D.prepare(spec.source==='extra'?p.extraTable:p.table,raw);
-     for(const point of c.mzPoints){const rows=all.filter(r=>r.date===point.filterValue),calc=D[spec.calc||p.calc](rows);
+     const table=spec.source==='inc'?'inc':spec.source==='extra'?p.extraTable:p.table,raw=__testFixtures[table],all=D.prepare(table,raw);
+     for(const point of c.mzPoints){const rows=all.filter(r=>r.date===point.filterValue),calc=spec.calc==='eggUse'?MatrizesEggOrigin.average(rows,D):D[spec.calc||p.calc](rows);
       const result={...calc,discardTarget:MATRIZES_SETTINGS.discardTarget,incubationTarget:MATRIZES_SETTINGS.incubationTarget};
       if(spec.id==='cama')result.bedStd=D.monthlyTarget(__testFixtures.metas,'ovos_cama',point.filterValue);
       for(const series of spec.series){const a=point[series.key],b=result[series.key];if(a!==b&&!(a==null&&b==null)&&Math.abs(a-b)>1e-8)return {key:series.key,a,b};}
@@ -90,7 +91,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
    await page.locator('[data-filter-choice="lot"] summary').click();
    await page.setViewportSize({width:1440,height:1000});
   }
-  assert.equal(tested.length,16);assert.deepEqual(errors,[]);
-  console.log('PASS: 16 gráficos; toggle, drill barra/eixo, retorno, fórmulas diárias, Dados, expansão, 8/todas semanas, período e 4 larguras.');
+  assert.equal(tested.length,17);assert.deepEqual(errors,[]);
+  console.log('PASS: 17 gráficos; toggle, drill barra/eixo, retorno, fórmulas diárias, Dados, expansão, 8/todas semanas, período e 4 larguras.');
  }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

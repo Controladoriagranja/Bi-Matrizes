@@ -16,7 +16,7 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
   </script>
   <link rel="stylesheet" href="assets/vendor/geist/index.css">
   <link rel="stylesheet" href="assets/css/zootecnico-base.css?v=20261008-filtros-abertos">
-  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261019-dia-semana">
+  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261023-origem-ovos">
 </head>
 <body class="matrizes-page" data-page="${id}">
   <div id="matrizesApp"></div>
@@ -27,14 +27,14 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
   <script src="assets/js/theme.js?v=20261008-filtros-abertos"></script>
   <script src="assets/js/matrizes-settings.js?v=20261008-filtros-abertos"></script>
   <script src="assets/js/matrizes-data.js?v=20261008-filtros-abertos"></script>
-  <script src="assets/js/matrizes-pages.js?v=20261008-filtros-abertos"></script>
+  <script src="assets/js/matrizes-pages.js?v=20261023-origem-ovos"></script>
   <script src="assets/js/matrizes-sidebar.js?v=20261008-filtros-abertos-sidebar"></script>
-  <script src="assets/js/matrizes-formulas.js?v=20261008-filtros-abertos"></script>
+  <script src="assets/js/matrizes-formulas.js?v=20261023-origem-ovos"></script>
   <script src="assets/js/matrizes-chart-labels.js?v=20261008-filtros-abertos"></script>
   <script src="assets/js/matrizes-chart-layout.js?v=20261008-filtros-abertos"></script>
   <script src="assets/js/matrizes-chart-style.js?v=20261008-filtros-abertos"></script>
   <script src="assets/js/matrizes-period-drill.js?v=20261019-dia-semana"></script>
-  <script src="assets/js/matrizes-app.js?v=20261019-dia-semana"></script>
+${id==='incubatorio'?'  <script src="assets/js/matrizes-egg-origin.js?v=20261023-origem-ovos"></script>\n':''}  <script src="assets/js/matrizes-app.js?v=20261023-origem-ovos"></script>
 </body>
 </html>
 `,'utf8');
