@@ -10,9 +10,9 @@
   const eggOrigin=pageId==='incubatorio'?window.MatrizesEggOrigin:null;
   const eggSort={key:'date',direction:'asc'};
   if(eggOrigin)filterLabels.origin='Origem dos ovos';
-  const state={rows:[],extra:[],inc:[],metas:[],metasError:'',charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8,chartSelection:null};
+  const state={rows:[],extra:[],inc:[],metas:[],metasError:'',charts:new Map(),filters:{},sex:'femeas',start:'',end:'',endMode:'auto',latestLoad:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8,chartSelection:null};
   const allRows=()=>[...state.rows,...state.extra,...state.inc];
-  const defaultPeriod=D.previousTwoMonths();
+  const defaultPeriod=D.defaultPeriod();
   const periodControls=new Map();
   const isWeekly=spec=>(spec.group||page.group)==='week';
   state.start=defaultPeriod.start;state.end=defaultPeriod.end;
@@ -22,6 +22,9 @@
     if(saved) {
       state.hasSavedFilters=true;
       state.sex=saved.sex==='machos'?'machos':'femeas'; state.start=saved.start||''; state.end=saved.end||'';
+      // Sessões antigas não informam se a data foi escolhida pelo usuário.
+      // Preservá-las evita sobrescrever consultas históricas; Limpar filtros ativa o novo padrão.
+      state.endMode=saved.endMode==='auto'?'auto':'manual';
       Object.entries(saved.filters||{}).forEach(([key,values])=>{if(Array.isArray(values))state.filters[key]=new Set(values.map(String));});
     }
   } catch (_) { /* A sessão pode impedir armazenamento. */ }
@@ -29,7 +32,15 @@
   const selected=key=>state.filters[key]||(state.filters[key]=new Set());
   function saveFilters() {
     state.hasSavedFilters=true;
-    try {sessionStorage.setItem(storageKey,JSON.stringify({sex:state.sex,start:state.start,end:state.end,filters:Object.fromEntries(Object.entries(state.filters).map(([k,v])=>[k,[...v]]))}));} catch (_) {}
+    try {sessionStorage.setItem(storageKey,JSON.stringify({sex:state.sex,start:state.start,end:state.end,endMode:state.endMode,filters:Object.fromEntries(Object.entries(state.filters).map(([k,v])=>[k,[...v]]))}));} catch (_) {}
+  }
+  function syncDefaultPeriod() {
+    defaultPeriod.end=D.defaultPeriod(allRows()).end;
+    if(state.endMode==='auto')state.end=defaultPeriod.end;
+  }
+  function renderLastUpdate() {
+    const latest=state.latestLoad;
+    $('ultimaAtualizacao').textContent=latest?`${dayLabel(latest.slice(0,10))} · ${latest.slice(11,19)}`:state.complete?'Não informada':'—';
   }
   function format(value,unit='%',digits=2) {
     if(value==null||!Number.isFinite(Number(value)))return '—';
@@ -185,8 +196,8 @@
     control.setAttribute('aria-checked',control.indeterminate?'mixed':String(control.checked));
   }
   function clearFilters() {
-    // Mesmo reset de dados e período; somente os estados visuais adicionais são limpos.
-    state.chartSelection=null;state.filters={};state.start=defaultPeriod.start;state.end=defaultPeriod.end;
+    // Limpa seleções e reativa o período automático pelos eventos carregados.
+    state.chartSelection=null;state.filters={};state.endMode='auto';syncDefaultPeriod();state.start=defaultPeriod.start;state.end=defaultPeriod.end;
     document.querySelectorAll('[data-filter-choice]').forEach(el=>el.open=false);
     document.querySelectorAll('[data-search]').forEach(el=>el.value='');saveFilters();render();
   }
@@ -242,7 +253,7 @@
       if(event.key==='Escape'){event.preventDefault();event.stopPropagation();details.open=false;details.querySelector('summary').focus({preventScroll:true});}
     }));
     document.querySelectorAll('[data-month]').forEach(button=>button.addEventListener('click',()=>{
-      const set=selected('month');set.has(button.dataset.month)?set.delete(button.dataset.month):set.add(button.dataset.month);state.start='';state.end='';selected('week').clear();saveFilters();render();
+      const set=selected('month');set.has(button.dataset.month)?set.delete(button.dataset.month):set.add(button.dataset.month);state.start='';state.end='';state.endMode='manual';selected('week').clear();saveFilters();render();
     }));
     document.querySelectorAll('[data-sex]').forEach(button=>button.addEventListener('click',()=>{state.sex=button.dataset.sex;saveFilters();render();}));
     document.querySelectorAll('[data-search]').forEach(input=>input.addEventListener('input',()=>{
@@ -253,7 +264,7 @@
     if(focus){const input=[...document.querySelectorAll('[data-filter]')].find(el=>el.dataset.filter===focus.key&&el.value===focus.value);input?.focus({preventScroll:true});}
     scrolls.forEach(({el,key,top})=>{const target=el.isConnected?el:key?document.querySelector(`[data-filter-choice="${key}"] .mz-options`):null;if(target)target.scrollTop=top;});
     $('startDate').addEventListener('change',()=>{state.start=$('startDate').value;saveFilters();render();});
-    $('endDate').addEventListener('change',()=>{state.end=$('endDate').value;saveFilters();render();});
+    $('endDate').addEventListener('change',()=>{state.end=$('endDate').value;state.endMode='manual';saveFilters();render();});
   }
   function renderKpis(rows) {
     const data=D.simpleIndicators(rows,page.calc,state.sex),context='Média simples do período selecionado';
@@ -386,13 +397,14 @@
     const prepared=()=>transform?transform(records):enrich(D.prepare(table,records)).filter(row=>pageId!=='producao'||row.year!=='2025');
     await fetchPage(1);
     if(pagesTotal>1)await fetchPage(pagesTotal);
-    onProgress?.(prepared(),records.length,total);
+    const progress=()=>onProgress?.(prepared(),records.length,total,records.reduce((latest,row)=>D.text(row.carregado_em)>latest?D.text(row.carregado_em):latest,''));
+    progress();
     // Tail pages usually contain the latest loads. Date completeness is only
     // guaranteed after all pages: the existing API has no date-range parameter.
     const pending=Array.from({length:Math.max(0,pagesTotal-2)},(_,i)=>pagesTotal-1-i);
     for(let i=0;i<pending.length;i+=3){
       await Promise.all(pending.slice(i,i+3).map(fetchPage));
-      onProgress?.(prepared(),records.length,total);
+      progress();
     }
     if(records.length!==total)throw new Error(`Consulta incompleta em ${table}: ${records.length} de ${total} registros.`);
     return prepared();
@@ -409,14 +421,17 @@
   async function load() {
     state.controller?.abort();const controller=new AbortController();state.controller=controller;
     const timeout=setTimeout(()=>controller.abort('timeout'),120000);
-    $('refresh').disabled=true;$('error').classList.add('hidden');state.loaded=false;state.complete=false;state.rows=[];state.extra=[];state.inc=[];state.metas=[];state.metasError='';
+    $('refresh').disabled=true;$('error').classList.add('hidden');state.loaded=false;state.complete=false;state.rows=[];state.extra=[];state.inc=[];state.metas=[];state.metasError='';state.latestLoad='';syncDefaultPeriod();
     $('ultimaAtualizacao').textContent='—';$('loadStatus').textContent='Conectando ao Worker';render();
     try {
-      const progress=(key,table)=>(rows,count,total)=>{
+      const progress=(key,table)=>(rows,count,total,latestLoad)=>{
         if(state.controller!==controller||controller.signal.aborted)return;
+        if(latestLoad>state.latestLoad)state.latestLoad=latestLoad;
+        renderLastUpdate();
         // A referencia completa de inc deve chegar antes de exibir dados classificados.
         if(eggOrigin){$('loadStatus').textContent=`Carregando ${table}: ${count.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')}`;return;}
         state[key]=key==='extra'?D.preferDaily(rows):rows;
+        syncDefaultPeriod();
         state.loaded=true;
         $('loadStatus').textContent=`Prévia parcial do período selecionado · ${table}: ${count.toLocaleString('pt-BR')} / ${total.toLocaleString('pt-BR')} · carregando histórico`;
         render();
@@ -444,9 +459,8 @@
         if(!supported.has(key)||(!(eggOrigin&&key==='origin')&&!allRows().some(r=>r[key]!==''&&r[key]!=null)))delete state.filters[key];
       }
 
-      const latestLoad=allRows().map(r=>D.text(r.raw.carregado_em)).filter(Boolean).sort().at(-1);
-      $('ultimaAtualizacao').textContent=latestLoad?`${dayLabel(latestLoad.slice(0,10))} · ${latestLoad.slice(11,19)}`:'Não informada';
-      state.complete=true;$('loadStatus').textContent='Dados carregados · histórico completo';render();
+      syncDefaultPeriod();
+      state.complete=true;renderLastUpdate();$('loadStatus').textContent='Dados carregados · histórico completo';render();
     } catch(error) {
       if(state.controller!==controller)return;
       controller.abort();state.rows=[];state.extra=[];state.inc=[];state.loaded=false;$('loadStatus').textContent='Consulta indisponível';

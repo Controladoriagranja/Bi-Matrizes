@@ -91,6 +91,16 @@
     const start=new Date(Date.UTC(reference.getFullYear(),reference.getMonth()-2,1));
     return {start:iso(start),end:iso(end)};
   }
+  // Mantém o início dos dois meses anteriores e inclui os eventos mais recentes.
+  // A data da carga e a competência das metas não definem o fim do relatório.
+  function defaultPeriod(rows=[],reference=new Date()) {
+    const start=previousTwoMonths(reference).start;
+    const latest=rows.reduce((value,row)=>{
+      const event=iso(date(row.date));return event>value?event:value;
+    },'');
+    const today=iso(new Date(Date.UTC(reference.getFullYear(),reference.getMonth(),reference.getDate())));
+    return {start,end:latest||today};
+  }
   function lifeWeekGroups(rows,start=1,end=22) {
     const groups=new Map(group(rows,row=>row.age));
     return Array.from({length:end-start+1},(_,index)=>{const age=start+index;return [age,groups.get(age)||[]];});
@@ -210,7 +220,7 @@
     const dailyLots = new Set(rows.filter(r=>/di.rio/i.test(text(r.raw.tipo_movto))).map(r=>JSON.stringify([r.company,r.unit,r.lot,r.house])));
     return rows.filter(r=>!dailyLots.has(JSON.stringify([r.company,r.unit,r.lot,r.house]))||/di.rio/i.test(text(r.raw.tipo_movto)));
   }
-  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,previousTwoMonths,lifeWeekGroups,chartGroups,periodReferenceDate,monthlyTarget,recriaFields,mean,simpleIndicators,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
+  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,previousTwoMonths,defaultPeriod,lifeWeekGroups,chartGroups,periodReferenceDate,monthlyTarget,recriaFields,mean,simpleIndicators,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
   else root.MatrizesData=api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

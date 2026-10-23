@@ -283,7 +283,8 @@ try {
       });
       const before=await page.locator('#recordCount').textContent();
       assert.equal(await page.locator('#startDate').inputValue(),'2026-08-01');
-      assert.equal(await page.locator('#endDate').inputValue(),'2026-09-30');
+      const expectedEnd=[...fixtures.granja.map(row=>row.data),...fixtures.acerto_produtor_producao.map(row=>row.ini_semana)].filter(Boolean).sort().at(-1);
+      assert.equal(await page.locator('#endDate').inputValue(),expectedEnd);
       if(!examplePaths.length){
         await page.locator('[data-month="8"]').click();
         assert.match(await page.locator('#recordCount').textContent(),/^20 de /);
