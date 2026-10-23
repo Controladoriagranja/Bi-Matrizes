@@ -112,7 +112,7 @@ O teste de navegador verifica retângulos (fim dos filtros antes do início do r
 
 ## Controles de filtros
 
-Os dropdowns são gerados por `filterChoice` em `matrizes-app.js`. Cada lista começa com uma caixa Selecionar tudo, fixa no topo da área de opções com fundo do tema. A caixa alterna seleção/desmarcação e informa o estado parcial nativo (`indeterminate` e `aria-checked=mixed`). Nas listas com pesquisa, a ação se aplica apenas às opções visíveis e mantém as seleções fora da pesquisa. Nenhum resultado deixa o controle desabilitado.
+Os dropdowns são gerados por `filterChoice` em `matrizes-app.js`. Todas as listas têm pesquisa compartilhada, seguida da caixa Selecionar tudo; os dois controles ficam fixos no topo da área de opções com fundo do tema. A busca ignora caixa e acentos, preserva marcações e oferece X e Nenhum resultado. O atributo hidden prevalece sobre o display das opções, garantindo que a busca também as oculte visualmente. A caixa alterna seleção/desmarcação e informa o estado parcial nativo (`indeterminate` e `aria-checked=mixed`). Sua ação se aplica apenas às opções visíveis e mantém as seleções fora da pesquisa. Nenhum resultado deixa o controle desabilitado.
 
 Meses mantém suas caixas atuais, sem Selecionar tudo. Sexo continua selecionando exclusivamente Fêmeas ou Machos, conforme autorizado. Datas são controles de intervalo, sem seleção em massa.
 

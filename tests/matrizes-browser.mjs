@@ -108,7 +108,7 @@ try {
       for(const key of keys){
         await page.locator('#clearFilters').click();await ensureOpen(key);
         const all=page.locator(`[data-select-all="${key}"]`),options=page.locator(`[data-filter="${key}"]`);
-        assert.equal(await all.count(),1);assert.equal(await all.evaluate(el=>el.closest('.mz-options').firstElementChild===el.parentElement),true);
+        assert.equal(await all.count(),1);assert.equal(await all.evaluate(el=>el.closest('.mz-options').querySelector('.mz-select-all')===el.parentElement),true);
         if(!await options.count()){assert.equal(await all.isDisabled(),true);continue;}
         await options.first().check();assert.notEqual(await page.locator(`[data-filter-choice="${key}"]`).getAttribute('open'),null,`${key}: opção mantém lista aberta`);
         await options.first().uncheck();assert.notEqual(await page.locator(`[data-filter-choice="${key}"]`).getAttribute('open'),null,`${key}: desmarcar mantém lista aberta`);
@@ -133,8 +133,8 @@ try {
       await page.locator('[data-select-all="lot"]').uncheck();await ensureOpen('lot');await page.locator('[data-search="lot"]').fill('sem resultado');
       assert.equal(await page.locator('[data-select-all="lot"]').isDisabled(),true);
       await page.locator('#clearFilters').click();await ensureOpen('age');
-      const sticky=await page.locator('[data-filter-choice="age"] .mz-options').evaluate(el=>{el.scrollTop=el.scrollHeight;return {top:el.getBoundingClientRect().top,labelTop:el.querySelector('.mz-select-all').getBoundingClientRect().top,position:getComputedStyle(el.querySelector('.mz-select-all')).position};});
-      assert.equal(sticky.position,'sticky');assert.ok(Math.abs(sticky.top-sticky.labelTop)<=1);
+      const sticky=await page.locator('[data-filter-choice="age"] .mz-options').evaluate(el=>{el.scrollTop=el.scrollHeight;const style=getComputedStyle(el.querySelector('.mz-select-all'));return {top:el.getBoundingClientRect().top,labelTop:el.querySelector('.mz-select-all').getBoundingClientRect().top,offset:parseFloat(style.top),position:style.position};});
+      assert.equal(sticky.position,'sticky');assert.ok(Math.abs(sticky.top+sticky.offset-sticky.labelTop)<=1);
       await page.locator('[data-filter-choice="age"] summary').focus();await page.keyboard.press('Escape');assert.equal(await page.locator('[data-filter-choice="age"]').getAttribute('open'),null);
       for(const width of [1440,768,430,390,320]){
         await page.setViewportSize({width,height:844});await settle();await page.locator('#clearFilters').click();

@@ -14,6 +14,7 @@
   const allRows=()=>[...state.rows,...state.extra,...state.inc];
   const defaultPeriod=D.defaultPeriod();
   const periodControls=new Map();
+  const lotLists=new Map(),lotGraphState=new Map();
   const isWeekly=spec=>(spec.group||page.group)==='week';
   state.start=defaultPeriod.start;state.end=defaultPeriod.end;
   const storageKey=`bi-matrizes-filtros-v3-${page.module}`;
@@ -146,7 +147,7 @@
     $('refresh').addEventListener('click',load);
     $('clearFilters').addEventListener('click',clearFilters);
     $('chartSelectionStatus').addEventListener('click',clearChartSelection);
-    document.addEventListener('click',event=>{if(!event.target.closest('.mz-chart,button,a,input,summary,details,.mz-filters,.side-nav-root'))clearChartSelection();});
+    document.addEventListener('click',event=>{if(!event.target.closest('.mz-chart,.mz-lot-list,button,a,input,summary,details,.mz-filters,.side-nav-root'))clearChartSelection();});
     $('toggleWeeks').addEventListener('click',()=>{
       state.weekLimit=state.weekLimit==null?8:null;
       $('toggleWeeks').textContent=state.weekLimit==null?'Mostrar Somente 8 Semanas':'Mostrar Todas as Semanas';
@@ -159,11 +160,12 @@
     }));
     document.querySelectorAll('[data-expand]').forEach(button=>button.addEventListener('click',()=>expand(button.dataset.expand)));
     for(const spec of page.charts.filter(isWeekly)){
-      const control=MatrizesWeekDrill.create(spec.id,renderCharts);
+      const control=MatrizesWeekDrill.create(spec.id,renderCharts,{lot:!!spec.lot});
       periodControls.set(spec.id,control);
       const card=$(`card-${spec.id}`);
       card.querySelector('.mz-chart-actions').prepend(control.flags);
       card.querySelector('.mz-chart-head').after(control.bar);
+      if(spec.lot){const list=MatrizesLotList.create(spec.id);lotLists.set(spec.id,list);card.append(list.element);}
     }
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExpanded();});
     window.addEventListener('resize',()=>state.charts.forEach(scheduleChartPresentation));
@@ -211,7 +213,7 @@
     const sel=selected(key),label=filterLabels[key];
     const allValues=values;
     const display=v=>key==='week'?groupLabel(v,'week'):v;
-    return `<div class="mz-filter ${['lineage','lot'].includes(key)?'mz-linked-filter':''}"><span id="label-${key}">${label}</span><details class="mz-choice" data-filter-choice="${key}"><summary aria-labelledby="label-${key}">${sel.size?`${sel.size} selecionado(s)`:'Todos'}</summary><div class="mz-options">${selectAllControl(key)}${['lot','farm'].includes(key)?`<input class="mz-search" data-search="${key}" type="search" placeholder="Pesquisar ${label.toLowerCase()}" aria-label="Pesquisar ${label.toLowerCase()}">`:''}${allValues.length?allValues.map(value=>`<label><input type="checkbox" data-filter="${key}" value="${escape(value)}" ${sel.has(value)?'checked':''}><span>${escape(display(value))}</span></label>`).join(''):'<p class="mz-unavailable">Sem opções</p>'}</div></details></div>`;
+    return `<div class="mz-filter ${['lineage','lot'].includes(key)?'mz-linked-filter':''}"><span id="label-${key}">${label}</span><details class="mz-choice" data-filter-choice="${key}"><summary aria-labelledby="label-${key}">${sel.size?`${sel.size} selecionado(s)`:'Todos'}</summary><div class="mz-options">${MatrizesFilterSearch.markup(key,label,escape)}${selectAllControl(key)}${allValues.map(value=>`<label class="mz-filter-option"><input type="checkbox" data-filter="${key}" value="${escape(value)}" ${sel.has(value)?'checked':''}><span>${escape(display(value))}</span></label>`).join('')}<p class="mz-unavailable mz-search-empty" role="status" hidden>Nenhum resultado</p></div></details></div>`;
   }
   function reconcileFilters(changed) {
     const rows=sexRows(allRows());
@@ -227,6 +229,7 @@
     const scrolls=[document.scrollingElement,document.querySelector('.mz-layout'),...document.querySelectorAll('.mz-filters,.mz-filter-fields,.mz-options')].map(el=>({el,key:el.closest('[data-filter-choice]')?.dataset.filterChoice,top:el.scrollTop}));
     const active=document.activeElement;
     const focus=active?.matches('[data-filter]')?{key:active.dataset.filter,value:active.value}:null;
+    const searchFocus=active?.matches('[data-search]')?{key:active.dataset.search,start:active.selectionStart,end:active.selectionEnd}:null;
     const searches=Object.fromEntries([...document.querySelectorAll('[data-search]')].map(el=>[el.dataset.search,el.value]));
     const rows=sexRows(allRows());
     const choices=key=>filterChoice(key,rows.filter(row=>matches(row,key)));
@@ -256,12 +259,10 @@
       const set=selected('month');set.has(button.dataset.month)?set.delete(button.dataset.month):set.add(button.dataset.month);state.start='';state.end='';state.endMode='manual';selected('week').clear();saveFilters();render();
     }));
     document.querySelectorAll('[data-sex]').forEach(button=>button.addEventListener('click',()=>{state.sex=button.dataset.sex;saveFilters();render();}));
-    document.querySelectorAll('[data-search]').forEach(input=>input.addEventListener('input',()=>{
-      const term=input.value.toLocaleLowerCase('pt-BR');input.parentElement.querySelectorAll('label:not(.mz-select-all)').forEach(label=>label.hidden=!label.textContent.toLocaleLowerCase('pt-BR').includes(term));syncSelectAll(input.dataset.search);
-    }));
-    document.querySelectorAll('[data-search]').forEach(input=>{input.value=searches[input.dataset.search]||'';input.dispatchEvent(new Event('input'));});
+    MatrizesFilterSearch.bind($('filterFields'),{terms:searches,onChange:syncSelectAll});
     document.querySelectorAll('[data-select-all]').forEach(control=>syncSelectAll(control.dataset.selectAll));
     if(focus){const input=[...document.querySelectorAll('[data-filter]')].find(el=>el.dataset.filter===focus.key&&el.value===focus.value);input?.focus({preventScroll:true});}
+    if(searchFocus){const input=[...document.querySelectorAll('[data-search]')].find(el=>el.dataset.search===searchFocus.key);if(input){input.focus({preventScroll:true});input.setSelectionRange(searchFocus.start,searchFocus.end);}}
     scrolls.forEach(({el,key,top})=>{const target=el.isConnected?el:key?document.querySelector(`[data-filter-choice="${key}"] .mz-options`):null;if(target)target.scrollTop=top;});
     $('startDate').addEventListener('change',()=>{state.start=$('startDate').value;saveFilters();render();});
     $('endDate').addEventListener('change',()=>{state.end=$('endDate').value;state.endMode='manual';saveFilters();render();});
@@ -338,7 +339,29 @@
     page.charts.forEach(spec=>{
       const rows=chartRows(spec);
       const data=points(rows,spec),control=periodControls.get(spec.id),daily=control?.period.mode==='dia';
+      const card=$(`card-${spec.id}`),wasLot=card.dataset.view==='lote',list=lotLists.get(spec.id);
+      if(control?.isLot()){
+        const chart=state.charts.get(spec.id);
+        if(!wasLot)lotGraphState.set(spec.id,{points:JSON.stringify(chart?.mzPoints),zoom:chart?.getOption().dataZoom?.map(item=>({type:item.type,start:item.start,end:item.end}))||[]});
+        card.dataset.view='lote';list.element.hidden=false;
+        const scoped=MatrizesLotList.scopeRows(rows,control.period,state.weekLimit,D);
+        const weeks=new Set(scoped.map(row=>row.week));
+        const week=weeks.size===1?[...weeks][0]:selected('week').size===1?[...selected('week')][0]:null;
+        const scope=week?`Lotes · Semana ${Number(week.slice(-2))} de ${week.slice(0,4)}`:`Lotes · período selecionado${weeks.size?` · ${weeks.size} semanas`:''}`;
+        list.render({scope,items:MatrizesLotList.aggregate(scoped,spec.lot,D,items=>calc(items,spec.calc||page.calc)),loading:!state.complete,error:!$('error').classList.contains('hidden')});
+        $(`caption-${spec.id}`).textContent='Resultados por lote no período exibido';
+        return;
+      }
+      if(list){list.element.hidden=true;card.dataset.view='chart';}
       renderChart(daily?{...spec,axis:'Dia',periodMode:'dia'}:spec,data);
+      if(wasLot){
+        const previous=lotGraphState.get(spec.id);
+        if(previous?.points===JSON.stringify(data)&&previous.zoom.length){
+          const chart=state.charts.get(spec.id);chart.setOption({dataZoom:previous.zoom});
+          previous.zoom.forEach(({start,end},index)=>chart.dispatchAction({type:'dataZoom',dataZoomIndex:index,start,end}));
+        }
+        lotGraphState.delete(spec.id);
+      }
       if(isWeekly(spec)){
         const periodText=daily?(control.period.drilledWeek?'Dias da semana selecionada':`Dias de ${state.weekLimit==null?'todas as semanas':'até 8 semanas'} do período selecionado`):`${state.weekLimit==null?'Todas as semanas':'Até 8 semanas'} do período selecionado`;
         $(`caption-${spec.id}`).textContent=(spec.visualShares?'Proporção visual fixa: 70% Aproveitamento / 30% Perdas · Rótulos e tooltip: valores reais · ':`${daily?'Dia':spec.axis} · ${spec.unit||'%'} · `)+periodText;

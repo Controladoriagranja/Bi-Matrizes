@@ -67,6 +67,12 @@
     {id:'ovos-aproveitamento',title:'Aproveitamento de ovos por semana',axis:'Semana de recebimento',source:'inc',calc:'eggUse',group:'week',section:'Aproveitamento de ovos',series:[series('eggUse','Ovos incubáveis','bar')]},
     {id:'ovos-aproveitamento-mes',title:'Aproveitamento de ovos por mês',axis:'Mês de recebimento',source:'inc',calc:'eggUse',group:'monthPeriod',section:'Aproveitamento de ovos',series:[series('eggUse','Ovos incubáveis','bar')]}
   );
+  // Apenas cards com um indicador definido por lote; fórmulas continuam em MatrizesData.
+  pages.producao.charts.find(chart=>chart.id==='producao').lot={metric:'production',target:'productionStd',eggs:'ovos_produzidos',lower:false};
+  pages.producao.charts.find(chart=>chart.id==='aproveitamento').lot={metric:'use',target:'useStd',eggs:'ovos_produzidos',lower:false};
+  pages.incubatorio.charts.find(chart=>chart.id==='eclosao').lot={metric:'hatch',target:'hatchStd',eggs:'quantid',lower:false};
+  pages.incubatorio.charts.find(chart=>chart.id==='descarte').lot={metric:'discard',eggs:'quantid',lower:true};
+  pages.incubatorio.charts.find(chart=>chart.id==='ovos-aproveitamento').lot={metric:'eggUse',eggs:'total',lower:false};
   // Tipos de apresentação independentes dos cálculos.
   for(const page of [pages.recria,pages.producao,pages.incubatorio,pages.embrio]) {
     for(const chart of page.charts) {
