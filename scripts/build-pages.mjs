@@ -16,7 +16,7 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
   </script>
   <link rel="stylesheet" href="assets/vendor/geist/index.css">
   <link rel="stylesheet" href="assets/css/zootecnico-base.css?v=20261008-filtros-abertos">
-  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261023-ordenacao-br">
+  <link rel="stylesheet" href="assets/css/matrizes.css?v=20261023-tabela-centralizada">
 </head>
 <body class="matrizes-page" data-page="${id}">
   <div id="matrizesApp"></div>

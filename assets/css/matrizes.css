@@ -185,10 +185,13 @@ body.mz-expanded .mz-layout, body.side-nav-open .mz-layout { overflow:hidden; }
 .mz-origin-flags label:has(input:disabled){opacity:.5;cursor:default}
 .mz-egg-summary{font-size:12px;color:var(--muted-foreground);line-height:1.6;margin:12px 0}
 .mz-egg-records thead th{position:sticky;top:0;z-index:1}
-.mz-egg-records td:nth-child(3),.mz-egg-records td:nth-child(4),.mz-egg-records td:nth-child(5),.mz-egg-records td:nth-child(6){text-align:left}
+.mz-egg-records{min-width:1100px;font-variant-numeric:tabular-nums}
+.mz-data-table.mz-egg-records th,.mz-data-table.mz-egg-records td{text-align:center;vertical-align:middle;padding:10px 12px}
+.mz-egg-records td:nth-child(4){min-width:240px;white-space:normal;line-height:1.45}
+.mz-egg-records tbody th{background:transparent;color:var(--foreground);font-weight:400}
 
 /* Cabeçalhos ordenáveis: botões nativos permitem uso por teclado. */
-.mz-table-sort{display:inline-flex;align-items:center;justify-content:flex-end;gap:7px;min-height:30px;padding:2px 0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:inherit;white-space:nowrap}
-.mz-egg-records th:first-child .mz-table-sort{justify-content:flex-start}
+.mz-table-sort{display:grid;grid-template-columns:12px auto 12px;align-items:center;justify-content:center;gap:5px;width:100%;min-height:30px;padding:2px 0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:center;white-space:nowrap}
+.mz-table-sort>span:first-child{grid-column:2}
 .mz-table-sort:hover,.mz-egg-records th[aria-sort="ascending"] .mz-table-sort,.mz-egg-records th[aria-sort="descending"] .mz-table-sort{color:var(--primary)}
 .mz-sort-indicator{font-size:10px;opacity:.7;flex-shrink:0}
