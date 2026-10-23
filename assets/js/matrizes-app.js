@@ -8,6 +8,7 @@
   const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const filterLabels={year:'Ano',week:'Semana',farm:'Fazenda',lot:'Lote',house:'Galpão',lineage:'Linhagem',age:'Idade (semanas)',origin:'Origem',stage:'Estágio da incubadora',status:'Situação atual'};
   const eggOrigin=pageId==='incubatorio'?window.MatrizesEggOrigin:null;
+  const eggSort={key:'date',direction:'asc'};
   if(eggOrigin)filterLabels.origin='Origem dos ovos';
   const state={rows:[],extra:[],inc:[],metas:[],metasError:'',charts:new Map(),filters:{},sex:'femeas',start:'',end:'',loaded:false,complete:false,controller:null,hasSavedFilters:false,weekLimit:8,chartSelection:null};
   const allRows=()=>[...state.rows,...state.extra,...state.inc];
@@ -122,6 +123,15 @@
       }
       MatrizesFormulaUI.openEggUse({rows,value:eggOrigin.average(rows,D).eggUse});
     }));
+    if(eggOrigin)$('eggRecords').addEventListener('click',event=>{
+      const button=event.target.closest('[data-egg-sort]');if(!button)return;
+      const key=button.dataset.eggSort;
+      if(!eggOrigin.recordColumns.some(([field])=>field===key))return;
+      eggSort.direction=eggSort.key===key&&eggSort.direction==='asc'?'desc':'asc';eggSort.key=key;
+      const left=$('eggRecords').scrollLeft;
+      renderEggRecords();$('eggRecords').scrollTop=0;$('eggRecords').scrollLeft=left;
+      $('eggRecords').querySelector(`[data-egg-sort="${key}"]`).focus({preventScroll:true});
+    });
     $('refresh').addEventListener('click',load);
     $('clearFilters').addEventListener('click',clearFilters);
     $('chartSelectionStatus').addEventListener('click',clearChartSelection);
@@ -331,10 +341,10 @@
     });
   }
   function renderEggRecords() {
-    const rows=filtered(state.inc).slice().sort((a,b)=>a.date.localeCompare(b.date)||a.farm.localeCompare(b.farm,'pt-BR')||a.lot.localeCompare(b.lot,'pt-BR',{numeric:true}));
-    const columns=['Recebimento','Semana','Origem dos ovos','Fazenda','Lote','Linhagem','Idade (semanas)','Total de ovos','Ovos incubáveis','Ovos incubáveis (%)'];
-    $('eggSummary').textContent=`${rows.length.toLocaleString('pt-BR')} registros · Média dos percentuais: ${format(eggOrigin.average(rows,D).eggUse,'%',2)}`;
-    $('eggRecords').innerHTML=`<table class="mz-data-table mz-egg-records"><caption class="hidden">Aproveitamento de ovos por registro</caption><thead><tr>${columns.map(name=>`<th scope="col">${name}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr><th scope="row">${dayLabel(row.date)}</th><td>${escape(groupLabel(row.week,'week'))}</td><td>${escape(row.origin||'—')}</td><td>${escape(row.farm)}</td><td>${escape(row.lot)}</td><td>${escape(row.lineage)}</td><td>${format(row.age,'',0)}</td><td>${format(D.n(row.raw.total),'',0)}</td><td>${format(D.n(row.raw.ovos_incubaveis),'',0)}</td><td>${format(D.n(row.raw.ovos_incubaveis_pct),'%',2)}</td></tr>`).join(''):`<tr><td colspan="10">Sem dados para os filtros selecionados</td></tr>`}</tbody></table>`;
+    const records=filtered(state.inc),rows=eggOrigin.sortRecords(records,eggSort,D);
+    const columns=eggOrigin.recordColumns;
+    $('eggSummary').textContent=`${records.length.toLocaleString('pt-BR')} registros · Média dos percentuais: ${format(eggOrigin.average(records,D).eggUse,'%',2)}`;
+    $('eggRecords').innerHTML=`<table class="mz-data-table mz-egg-records"><caption class="hidden">Aproveitamento de ovos por registro</caption><thead><tr>${columns.map(([key,name])=>`<th scope="col" aria-sort="${eggSort.key===key?(eggSort.direction==='asc'?'ascending':'descending'):'none'}"><button type="button" class="mz-table-sort" data-egg-sort="${key}" aria-label="${name}: ordenar em ordem ${eggSort.key===key&&eggSort.direction==='asc'?'decrescente':'crescente'}" title="Ordenar por ${name}"><span>${name}</span><span class="mz-sort-indicator" aria-hidden="true">${eggSort.key===key?(eggSort.direction==='asc'?'▲':'▼'):'↕'}</span></button></th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr><th scope="row">${dayLabel(row.date)}</th><td>${escape(groupLabel(row.week,'week'))}</td><td>${escape(row.origin||'—')}</td><td>${escape(row.farm)}</td><td>${escape(row.lot)}</td><td>${escape(row.lineage)}</td><td>${format(row.age,'',0)}</td><td>${format(D.n(row.raw.total),'',0)}</td><td>${format(D.n(row.raw.ovos_incubaveis),'',0)}</td><td>${format(D.n(row.raw.ovos_incubaveis_pct),'%',2)}</td></tr>`).join(''):`<tr><td colspan="10">Sem dados para os filtros selecionados</td></tr>`}</tbody></table>`;
   }
   function render() {
     const rows=filtered(state.rows);

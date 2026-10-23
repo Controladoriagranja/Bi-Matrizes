@@ -29,6 +29,12 @@ Fórmula aprovada: média aritmética de inc.ovos_incubaveis_pct nos registros v
 
 Todos os filtros existentes da página afetam a nova divisão. A tabela de registros segue os filtros globais; o botão Dados de cada gráfico segue também seu drill e limite de semanas. O filtro Estágio previsto no frontend continua oculto quando não há informação, como antes. Nenhum campo de estágio foi inventado para inc.
 
+### Ordenação da tabela de registros
+
+As dez colunas são ordenáveis pelo cabeçalho, alternando crescente/decrescente com indicador visual e aria-sort. Botões nativos permitem uso por teclado. A seleção de ordenação é mantida ao filtrar ou atualizar os dados na mesma página. O padrão continua Recebimento crescente. Datas são comparadas pelo valor ISO; quantidades, idade e percentual pelo valor numérico; textos e lotes usam comparação natural pt-BR. Ausências ficam no final em ambas as direções. A ordenação não altera os dados de origem, as médias ou os gráficos.
+
+A apresentação permanece brasileira: datas dd/mm/aaaa, milhares com ponto, decimais com vírgula e percentuais como 97,35%.
+
 ## API e orientação para Anderson, se necessário
 
 Não houve alteração de backend, extratores, banco, tabelas ou views. A cópia de referência do backend já expõe consulta genérica de tabelas de Matrizes.

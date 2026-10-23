@@ -46,11 +46,32 @@ const server=http.createServer((req,res)=>{
   const order=await page.locator('.mz-filter-fields').evaluate(el=>{const a=el.querySelector('[data-filter-choice="week"]').getBoundingClientRect(),b=el.querySelector('.mz-origin-filter').getBoundingClientRect(),c=el.querySelector('[data-filter-choice="farm"]').getBoundingClientRect();return a.bottom<=b.top&&b.bottom<=c.top;});assert.ok(order);
   assert.match(await page.locator('.mz-section-title').last().textContent(),/Aproveitamento/);
   assert.equal(await page.locator('#eggRecords tbody tr').count(),285);
+  const summaryBeforeSort=await page.locator('#eggSummary').textContent();
+  assert.equal(await page.locator('#eggRecords [data-egg-sort]').count(),10);
+  for(const [key,index,numeric] of [['date',0,false],['week',1,false],['origin',2,false],['farm',3,false],['lot',4,false],['lineage',5,false],['age',6,true],['total',7,true],['eggs',8,true],['percentage',9,true]]){
+   const button=page.locator(`[data-egg-sort="${key}"]`);
+   // Primeira coluna já começa crescente; as demais começam ao primeiro clique.
+   if(key!=='date')await button.click();
+   for(const direction of ['ascending','descending']){
+    assert.equal(await button.locator('..').getAttribute('aria-sort'),direction);
+    const sorted=await page.locator('#eggRecords').evaluate((el,{index,numeric,direction,key})=>{
+     const values=[...el.querySelectorAll('tbody tr')].map(tr=>tr.children[index].textContent);
+     const compare=(a,b)=>key==='date'?MatrizesData.date(a)-MatrizesData.date(b):numeric?MatrizesData.n(a)-MatrizesData.n(b):a.localeCompare(b,'pt-BR',{numeric:true,sensitivity:'base'});
+     return values.every((value,i)=>!i||compare(values[i-1],value)*(direction==='ascending'?1:-1)<=0);
+    },{index,numeric,direction,key});assert.ok(sorted,key+' '+direction);
+    if(direction==='ascending')await button.click();
+   }
+  }
+  assert.equal(await page.locator('#eggSummary').textContent(),summaryBeforeSort,'Ordenar não muda cálculos');
+  assert.match(await page.locator('#eggRecords tbody tr').first().locator('td').last().textContent(),/100,00%/);
+  assert.ok((await page.locator('#eggRecords tbody tr td').allTextContents()).includes('10.000'),'Milhar no formato brasileiro');
+  await page.locator('[data-egg-sort="date"]').click();
   assert.equal((await chart(weekly)).points.length,8);assert.ok((await chart(weekly)).points.every(p=>p.eggUse===60));
   assert.ok((await chart('ovos-aproveitamento-mes')).points.every(p=>p.eggUse===60));
   assert.ok((await chart('eclosao')).points.every(p=>p.hatch===60));
   assert.match(await page.locator('#notice').textContent(),/1 registro\(s\) de incubação sem origem/);
   await page.locator('[data-filter="origin"][value="Própria"]').check();
+  assert.equal(await page.locator('[data-egg-sort="date"]').locator('..').getAttribute('aria-sort'),'ascending','Ordenação preservada ao filtrar');
   assert.ok((await chart(weekly)).points.every(p=>p.eggUse===50));assert.ok((await chart('eclosao')).points.every(p=>p.hatch===80));
   assert.ok((await chart('estoque')).points.every(p=>p.stock===2));assert.ok((await chart('incubacao')).points.every(p=>p.incubated<=700));
   assert.equal(await page.locator('#eggRecords tbody tr').count(),190);
