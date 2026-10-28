@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import vm from 'node:vm';
 const context={};vm.createContext(context);
 vm.runInContext(fs.readFileSync('assets/js/matrizes-pages.js','utf8'),context);
@@ -7,7 +7,7 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
 <html lang="pt-BR" data-theme="light">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="BI Matrizes — ${page.subtitle}">
   <link rel="icon" href="assets/img/favicon-granja.png">
   <title>BI Matrizes | ${page.title}</title>
@@ -17,6 +17,7 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
   <link rel="stylesheet" href="assets/vendor/geist/index.css">
   <link rel="stylesheet" href="assets/css/zootecnico-base.css?v=20261008-filtros-abertos">
   <link rel="stylesheet" href="assets/css/matrizes.css?v=20261023-busca-lotes">
+  <link rel="stylesheet" href="assets/css/mobile-filters.css?v=20261028-painel-movel">
 </head>
 <body class="matrizes-page" data-page="${id}">
   <div id="matrizesApp"></div>
@@ -36,7 +37,8 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
   <script src="assets/js/matrizes-filter-search.js?v=20261023-busca-lotes"></script>
   <script src="assets/js/matrizes-lot-list.js?v=20261023-busca-lotes"></script>
   <script src="assets/js/matrizes-period-drill.js?v=20261023-busca-lotes"></script>
-${id==='incubatorio'?'  <script src="assets/js/matrizes-egg-origin.js?v=20261023-ordenacao-br"></script>\n':''}  <script src="assets/js/matrizes-app.js?v=20261023-busca-lotes"></script>
+${id==='incubatorio'?'  <script src="assets/js/matrizes-egg-origin.js?v=20261023-ordenacao-br"></script>\n':''}  <script src="assets/js/mobile-filters.js?v=20261028-painel-movel"></script>
+  <script src="assets/js/matrizes-app.js?v=20261028-painel-movel"></script>
 </body>
 </html>
 `,'utf8');

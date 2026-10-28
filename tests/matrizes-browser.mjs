@@ -88,7 +88,7 @@ try {
       }
     }
     await page.locator('[data-expand="cama"]').click();await settle();assert.deepEqual(await targetValues(),[3,3,3,2.5,2.5,null]);await page.keyboard.press('Escape');
-    await page.locator('[data-month="11"]').click();await settle();
+    await page.setViewportSize({width:1440,height:1000});await page.locator('[data-month="11"]').click();await settle();
     assert.deepEqual(await targetValues(),[3,2.5,2.5],'Filtro de mês preserva a referência da semana que atravessa meses');
     fixtures.granja=original;await page.evaluate(()=>{sessionStorage.removeItem('bi-matrizes-filtros-v3-'+MatrizesPages.producao.module);localStorage.setItem('bi-zootecnico-theme','light');});
     await page.setViewportSize({width:1440,height:1000});
@@ -137,7 +137,7 @@ try {
       assert.equal(sticky.position,'sticky');assert.ok(Math.abs(sticky.top+sticky.offset-sticky.labelTop)<=1);
       await page.locator('[data-filter-choice="age"] summary').focus();await page.keyboard.press('Escape');assert.equal(await page.locator('[data-filter-choice="age"]').getAttribute('open'),null);
       for(const width of [1440,768,430,390,320]){
-        await page.setViewportSize({width,height:844});await settle();await page.locator('#clearFilters').click();
+        await page.setViewportSize({width,height:844});await settle();if(width<=1024&&await page.locator('.mobile-filter-toggle').getAttribute('aria-expanded')==='false'){await page.locator('.mobile-filter-toggle').click();await page.waitForTimeout(300);}await page.locator('#clearFilters').click();
         const before=await page.locator('#clearFilters').boundingBox();await page.locator('.mz-layout').evaluate(el=>el.scrollTop=1000);const after=await page.locator('#clearFilters').boundingBox();
         assert.equal(after.y,before.y);assert.equal(after.x,before.x);assert.ok(after.x+after.width<=width);
         const geometry=await page.evaluate(()=>{const r=selector=>document.querySelector(selector).getBoundingClientRect();const lineage=r('[data-filter-choice="lineage"]'),lot=r('[data-filter-choice="lot"]'),clear=r('#clearFilters'),theme=r('[data-theme-toggle]');return {linked:lot.top>=lineage.bottom,aligned:Math.abs(lot.left-lineage.left)<1,overlap:clear.left<theme.right&&clear.right>theme.left&&clear.top<theme.bottom&&clear.bottom>theme.top};});
@@ -310,20 +310,21 @@ try {
       await page.screenshot({path:path.join(screenshotDir,'producao-dark.png'),fullPage:true});
       await page.locator('[data-theme-toggle]').click();
     }
-    // Regressão: altura intrínseca dos filtros deve empurrar o relatório para baixo.
+    // O painel móvel fica fora do fluxo; o relatório não é empurrado pelos filtros.
     const checkMobileFlow=async()=>{
       const boxes=await page.evaluate(()=>{
         const rect=selector=>{const {top,bottom,left,right,height}=document.querySelector(selector).getBoundingClientRect();return {top,bottom,left,right,height};};
-        return {filters:rect('.mz-filters'),main:rect('.mz-main'),fields:rect('#filterFields'),header:rect('.mz-topbar'),layout:rect('.mz-layout'),
-          clipped:[...document.querySelectorAll('.mz-topbar strong,.mz-topbar button,.mz-breadcrumb')].some(el=>{const r=el.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}),
-          filterScroll:document.querySelector('.mz-filters').scrollHeight>document.querySelector('.mz-filters').clientHeight+1};
+        return {main:rect('.mz-main'),header:rect('.mz-topbar'),layout:rect('.mz-layout'),
+          relocated:document.querySelector('.mobile-filter-mount').contains(document.getElementById('filterFields')),
+          clipped:[...document.querySelectorAll('.mz-topbar strong,.mz-topbar button,.mz-breadcrumb')].some(el=>{const r=el.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;})};
       });
-      assert.ok(boxes.main.top>=boxes.filters.bottom+15,`${file}: relatório sobreposto aos filtros`);
-      assert.ok(boxes.fields.bottom<=boxes.filters.bottom,`${file}: campos saíram do painel de filtros`);
+      assert.ok(boxes.relocated,`${file}: filtros movidos sem duplicação`);
+      assert.equal(await page.locator('.mz-filters').isVisible(),false);
       assert.ok(boxes.layout.top>=boxes.header.bottom-1,`${file}: conteúdo sob o cabeçalho`);
       assert.equal(boxes.clipped,false,`${file}: cabeçalho fora da tela`);
-      assert.equal(boxes.filterScroll,false,`${file}: painel mobile com rolagem interna`);
     };
+    const openFloating=async()=>{if(await page.locator('.mobile-filter-toggle').getAttribute('aria-expanded')==='false')await page.locator('.mobile-filter-toggle').click();await page.waitForTimeout(300);};
+    const applyFloating=async()=>{await page.locator('.mobile-filter-apply').click();await page.waitForTimeout(300);};
     for(const [width,height] of [[320,640],[360,740],[390,844],[430,932],[768,1024],[844,390]]){
       await page.setViewportSize({width,height});await settle();
       await page.locator('.mz-layout').evaluate(el=>el.scrollTop=0);await checkMobileFlow();
@@ -331,11 +332,12 @@ try {
     await page.setViewportSize({width:390,height:844});await settle();
     await page.locator('.mz-layout').evaluate(el=>el.scrollTop=0);
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-mobile-filters-top.png'))});
-    await page.locator('[data-filter-choice="farm"] summary').click();await checkMobileFlow();
+    await openFloating();await page.locator('[data-filter-choice="farm"] summary').click();await checkMobileFlow();
     await page.locator('[data-filter="farm"]').first().check();await settle();await checkMobileFlow();
     await page.locator('#clearFilters').click();await settle();const mobileBefore=await page.locator('#recordCount').textContent();
-    await page.locator('[data-month="1"]').click();await settle();assert.match(await page.locator('#recordCount').textContent(),/^0 de /);await checkMobileFlow();
-    await page.locator('#clearFilters').click();await settle();assert.equal(await page.locator('#recordCount').textContent(),mobileBefore);await checkMobileFlow();
+    await page.locator('[data-month="1"]').click();await applyFloating();await settle();assert.match(await page.locator('#recordCount').textContent(),/^0 de /);await checkMobileFlow();
+    await openFloating();
+    await page.locator('#clearFilters').click();await applyFloating();await settle();assert.equal(await page.locator('#recordCount').textContent(),mobileBefore);await checkMobileFlow();
     await page.locator('.mz-heading').scrollIntoViewIfNeeded();
     await page.screenshot({path:path.join(screenshotDir,file.replace('.html','-mobile-report-below.png'))});
     const mobileScroll=await page.locator('.mz-layout').evaluate(el=>el.scrollTop);
@@ -350,7 +352,8 @@ try {
       console.log(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1).map(el=>({tag:el.tagName,cls:el.className,width:el.getBoundingClientRect().width,right:el.getBoundingClientRect().right})).slice(0,15)));
     }
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${file}: overflow mobile`);
-    assert.equal(await page.locator('#filterFields').isVisible(),true);
+    assert.equal(await page.locator('#filterFields').isVisible(),false);
+    assert.ok(await page.locator('.mobile-filter-shell').isVisible());
     assert.equal(await page.locator('#toggleFilters').count(),0);
     assert.equal(await page.locator('.mz-topbar').evaluate(el=>getComputedStyle(el).position),'fixed');
     await page.locator('.mz-layout').evaluate(el=>el.scrollTop=500);
@@ -389,12 +392,13 @@ try {
     const checkFrameFlow=async()=>{
       const flow=await report.locator('.mz-main').evaluate(el=>{
         const doc=el.ownerDocument,f=doc.querySelector('.mz-filters').getBoundingClientRect(),m=el.getBoundingClientRect();
-        return {filtersBottom:f.bottom,mainTop:m.top,overflow:doc.documentElement.scrollWidth>doc.defaultView.innerWidth};
+        return {relocated:doc.querySelector('.mobile-filter-mount').contains(doc.getElementById('filterFields')),overflow:doc.documentElement.scrollWidth>doc.defaultView.innerWidth};
       });
-      assert.ok(flow.mainTop>=flow.filtersBottom+15,`${file}: sobreposição dentro da CENTRAL mobile`);assert.equal(flow.overflow,false);
+      assert.ok(flow.relocated,`${file}: painel flutuante dentro da CENTRAL mobile`);assert.equal(flow.overflow,false);
     };
     await checkFrameFlow();
-    await report.locator('[data-filter-choice="farm"] summary').click();await checkFrameFlow();
+    await report.locator('.mobile-filter-toggle').click();await report.locator('[data-filter-choice="farm"] summary').click();await checkFrameFlow();
+    await report.locator('.mobile-filter-toggle').click();
     await report.locator('.mz-layout').evaluate(el=>el.scrollTop=0);
     await embeddedPage.screenshot({path:path.join(screenshotDir,file.replace('.html','-central-mobile-filters.png'))});
     await report.locator('.mz-heading').scrollIntoViewIfNeeded();await checkFrameFlow();

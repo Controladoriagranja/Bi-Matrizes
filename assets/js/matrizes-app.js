@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   'use strict';
   const D=window.MatrizesData, pages=window.MatrizesPages, settings=window.MATRIZES_SETTINGS;
   const pageId=document.body.dataset.page, page=pages[pageId];
@@ -15,6 +15,7 @@
   const defaultPeriod=D.defaultPeriod();
   const periodControls=new Map();
   const lotLists=new Map(),lotGraphState=new Map();
+  let mobilePanel=null,draft=null,draftClearsSelection=false;
   const isWeekly=spec=>(spec.group||page.group)==='week';
   state.start=defaultPeriod.start;state.end=defaultPeriod.end;
   const storageKey=`bi-matrizes-filtros-v3-${page.module}`;
@@ -34,6 +35,50 @@
   function saveFilters() {
     state.hasSavedFilters=true;
     try {sessionStorage.setItem(storageKey,JSON.stringify({sex:state.sex,start:state.start,end:state.end,endMode:state.endMode,filters:Object.fromEntries(Object.entries(state.filters).map(([k,v])=>[k,[...v]]))}));} catch (_) {}
+  }
+  // Só os controles usam o rascunho móvel. Gráficos/tabelas e a sessão leem
+  // sempre o contexto aplicado; a cascata reutiliza matches/reconcileFilters.
+  function filterSnapshot() {
+    return {filters:Object.fromEntries(Object.entries(state.filters).map(([key,values])=>[key,new Set(values)])),sex:state.sex,start:state.start,end:state.end,endMode:state.endMode};
+  }
+  function filterSignature(context) {
+    return JSON.stringify([Object.entries(context.filters).filter(([,values])=>values.size).sort(([a],[b])=>a.localeCompare(b)).map(([key,values])=>[key,[...values].sort()]),context.sex,context.start,context.end,context.endMode]);
+  }
+  function withDraft(callback) {
+    if(!draft)return callback();
+    const applied=filterSnapshot(),selection=state.chartSelection;
+    Object.assign(state,draft);if(draftClearsSelection)state.chartSelection=null;
+    try{return callback();}
+    finally{draft=filterSnapshot();Object.assign(state,applied);state.chartSelection=selection;}
+  }
+  function renderFilterControls() {
+    if(draft?.endMode==='auto')draft.end=defaultPeriod.end;
+    withDraft(renderFilters);mobilePanel?.update();
+  }
+  function changeFilters(change) {
+    if(mobilePanel?.isMobile()) {
+      if(!draft)draft=filterSnapshot();
+      withDraft(change);renderFilterControls();
+    } else {change();saveFilters();render();}
+  }
+  function applyFilterDraft() {
+    if(!draft)return;
+    const previous=filterSnapshot(),selection=state.chartSelection;
+    try {
+      Object.assign(state,draft);if(draftClearsSelection)state.chartSelection=null;
+      draft=null;render();saveFilters();draft=mobilePanel?.isMobile()?filterSnapshot():null;draftClearsSelection=false;
+    } catch(error){draft=filterSnapshot();Object.assign(state,previous);state.chartSelection=selection;throw error;}
+  }
+  function attachMobileFilters() {
+    mobilePanel=MobileFilterPanel.create({fields:$('filterFields'),container:document.querySelector('.mz-filters'),clear:$('clearFilters'),
+      isDirty:()=>!!draft&&(draftClearsSelection||filterSignature(draft)!==filterSignature(state)),
+      getCount:()=>{
+        const context=draft||state;
+        return Object.values(context.filters).filter(values=>values.size).length+(context.sex==='machos'?1:0)+(context.start!==defaultPeriod.start?1:0)+(context.end!==defaultPeriod.end?1:0);
+      },
+      onApply:applyFilterDraft,
+      onModeChange:mobile=>{draft=mobile?filterSnapshot():null;draftClearsSelection=false;renderFilterControls();}
+    });
   }
   function syncDefaultPeriod() {
     defaultPeriod.end=D.defaultPeriod(allRows()).end;
@@ -147,7 +192,7 @@
     $('refresh').addEventListener('click',load);
     $('clearFilters').addEventListener('click',clearFilters);
     $('chartSelectionStatus').addEventListener('click',clearChartSelection);
-    document.addEventListener('click',event=>{if(!event.target.closest('.mz-chart,.mz-lot-list,button,a,input,summary,details,.mz-filters,.side-nav-root'))clearChartSelection();});
+    document.addEventListener('click',event=>{if(!event.target.closest('.mz-chart,.mz-lot-list,button,a,input,summary,details,.mz-filters,.mobile-filter-shell,.side-nav-root'))clearChartSelection();});
     $('toggleWeeks').addEventListener('click',()=>{
       state.weekLimit=state.weekLimit==null?8:null;
       $('toggleWeeks').textContent=state.weekLimit==null?'Mostrar Somente 8 Semanas':'Mostrar Todas as Semanas';
@@ -198,6 +243,13 @@
     control.setAttribute('aria-checked',control.indeterminate?'mixed':String(control.checked));
   }
   function clearFilters() {
+    if(mobilePanel?.isMobile()) {
+      draftClearsSelection=true;
+      changeFilters(()=>{state.filters={};state.endMode='auto';state.start=defaultPeriod.start;state.end=defaultPeriod.end;});
+      document.querySelectorAll('[data-filter-choice]').forEach(el=>el.open=false);
+      document.querySelectorAll('[data-search]').forEach(el=>el.value='');
+      renderFilterControls();return;
+    }
     // Limpa seleções e reativa o período automático pelos eventos carregados.
     state.chartSelection=null;state.filters={};state.endMode='auto';syncDefaultPeriod();state.start=defaultPeriod.start;state.end=defaultPeriod.end;
     document.querySelectorAll('[data-filter-choice]').forEach(el=>el.open=false);
@@ -226,7 +278,7 @@
   }
   function renderFilters() {
     const open=new Set([...document.querySelectorAll('[data-filter-choice][open]')].map(el=>el.dataset.filterChoice));
-    const scrolls=[document.scrollingElement,document.querySelector('.mz-layout'),...document.querySelectorAll('.mz-filters,.mz-filter-fields,.mz-options')].map(el=>({el,key:el.closest('[data-filter-choice]')?.dataset.filterChoice,top:el.scrollTop}));
+    const scrolls=[document.scrollingElement,document.querySelector('.mz-layout'),...document.querySelectorAll('.mz-filters,.mz-filter-fields,.mz-options,.mobile-filter-scroll')].map(el=>({el,key:el.closest('[data-filter-choice]')?.dataset.filterChoice,top:el.scrollTop}));
     const active=document.activeElement;
     const focus=active?.matches('[data-filter]')?{key:active.dataset.filter,value:active.value}:null;
     const searchFocus=active?.matches('[data-search]')?{key:active.dataset.search,start:active.selectionStart,end:active.selectionEnd}:null;
@@ -243,29 +295,27 @@
       <div class="mz-filter"><label for="endDate">Data final</label><input id="endDate" type="date" value="${escape(state.end)}" ${state.start?`min="${escape(state.start)}"`:''}></div>`;
     document.querySelectorAll('[data-filter-choice]').forEach(el=>{el.open=open.has(el.dataset.filterChoice);});
     document.querySelectorAll('[data-filter]').forEach(input=>input.addEventListener('change',()=>{
-      const set=selected(input.dataset.filter);input.checked?set.add(input.value):set.delete(input.value);reconcileFilters(input.dataset.filter);saveFilters();render();
+      changeFilters(()=>{const set=selected(input.dataset.filter);input.checked?set.add(input.value):set.delete(input.value);reconcileFilters(input.dataset.filter);});
     }));
     document.querySelectorAll('[data-select-all]').forEach(control=>control.addEventListener('change',()=>{
-      const key=control.dataset.selectAll,set=selected(key);
-      const values=visibleOptions(key).map(el=>el.value);
-      values.forEach(value=>control.checked?set.add(value):set.delete(value));
-      reconcileFilters(key);
-      saveFilters();render();document.querySelector(`[data-select-all="${key}"]`)?.focus({preventScroll:true});
+      const key=control.dataset.selectAll,values=visibleOptions(key).map(el=>el.value);
+      changeFilters(()=>{const set=selected(key);values.forEach(value=>control.checked?set.add(value):set.delete(value));reconcileFilters(key);});
+      document.querySelector(`[data-select-all="${key}"]`)?.focus({preventScroll:true});
     }));
     document.querySelectorAll('[data-filter-choice]').forEach(details=>details.addEventListener('keydown',event=>{
-      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();details.open=false;details.querySelector('summary').focus({preventScroll:true});}
+      if(event.key==='Escape'&&details.open){event.preventDefault();event.stopPropagation();details.open=false;details.querySelector('summary').focus({preventScroll:true});}
     }));
     document.querySelectorAll('[data-month]').forEach(button=>button.addEventListener('click',()=>{
-      const set=selected('month');set.has(button.dataset.month)?set.delete(button.dataset.month):set.add(button.dataset.month);state.start='';state.end='';state.endMode='manual';selected('week').clear();saveFilters();render();
+      changeFilters(()=>{const set=selected('month');set.has(button.dataset.month)?set.delete(button.dataset.month):set.add(button.dataset.month);state.start='';state.end='';state.endMode='manual';selected('week').clear();});
     }));
-    document.querySelectorAll('[data-sex]').forEach(button=>button.addEventListener('click',()=>{state.sex=button.dataset.sex;saveFilters();render();}));
+    document.querySelectorAll('[data-sex]').forEach(button=>button.addEventListener('click',()=>changeFilters(()=>{state.sex=button.dataset.sex;})));
     MatrizesFilterSearch.bind($('filterFields'),{terms:searches,onChange:syncSelectAll});
     document.querySelectorAll('[data-select-all]').forEach(control=>syncSelectAll(control.dataset.selectAll));
     if(focus){const input=[...document.querySelectorAll('[data-filter]')].find(el=>el.dataset.filter===focus.key&&el.value===focus.value);input?.focus({preventScroll:true});}
     if(searchFocus){const input=[...document.querySelectorAll('[data-search]')].find(el=>el.dataset.search===searchFocus.key);if(input){input.focus({preventScroll:true});input.setSelectionRange(searchFocus.start,searchFocus.end);}}
     scrolls.forEach(({el,key,top})=>{const target=el.isConnected?el:key?document.querySelector(`[data-filter-choice="${key}"] .mz-options`):null;if(target)target.scrollTop=top;});
-    $('startDate').addEventListener('change',()=>{state.start=$('startDate').value;saveFilters();render();});
-    $('endDate').addEventListener('change',()=>{state.end=$('endDate').value;state.endMode='manual';saveFilters();render();});
+    $('startDate').addEventListener('change',()=>{const value=$('startDate').value;changeFilters(()=>{state.start=value;});});
+    $('endDate').addEventListener('change',()=>{const value=$('endDate').value;changeFilters(()=>{state.end=value;state.endMode='manual';});});
   }
   function renderKpis(rows) {
     const data=D.simpleIndicators(rows,page.calc,state.sex),context='Média simples do período selecionado';
@@ -383,7 +433,7 @@
   function render() {
     const rows=filtered(state.rows);
     
-    renderFilters();renderKpis(rows);renderCharts();if(eggOrigin)renderEggRecords();
+    renderFilterControls();renderKpis(rows);renderCharts();if(eggOrigin)renderEggRecords();
     const selection=state.chartSelection;
     $('chartSelectionStatus').classList.toggle('hidden',!selection);
     $('chartSelectionStatus').replaceChildren();
@@ -476,11 +526,14 @@
         for(const row of state.extra)row.origin=eggOrigin.resolve(row,reference);
       }
       state.loaded=true;
-      if(pageId==='producao')selected('year').delete('2025');
-      const supported=new Set(['year','month','week',...page.filters]);
-      for(const key of Object.keys(state.filters)) {
-        if(!supported.has(key)||(!(eggOrigin&&key==='origin')&&!allRows().some(r=>r[key]!==''&&r[key]!=null)))delete state.filters[key];
+      function removeUnavailableFilters() {
+        if(pageId==='producao')selected('year').delete('2025');
+        const supported=new Set(['year','month','week',...page.filters]);
+        for(const key of Object.keys(state.filters)) {
+          if(!supported.has(key)||(!(eggOrigin&&key==='origin')&&!allRows().some(r=>r[key]!==''&&r[key]!=null)))delete state.filters[key];
+        }
       }
+      removeUnavailableFilters();if(draft)withDraft(removeUnavailableFilters);
 
       syncDefaultPeriod();
       state.complete=true;renderLastUpdate();$('loadStatus').textContent='Dados carregados · histórico completo';render();
@@ -491,6 +544,6 @@
       $('error').classList.remove('hidden');render();
     } finally {clearTimeout(timeout);if(state.controller===controller)$('refresh').disabled=false;}
   }
-  renderShell();render();load();
+  renderShell();attachMobileFilters();render();load();
 })();
 

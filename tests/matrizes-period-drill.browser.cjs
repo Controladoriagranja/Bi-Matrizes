@@ -77,6 +77,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
     await card.screenshot({path:path.join(out,file.replace('.html','')+'-'+width+'-dia.png')});
    }
    await page.locator('[data-theme-toggle]').click();await card.screenshot({path:path.join(out,file.replace('.html','')+'-dark.png')});
+   await page.setViewportSize({width:1440,height:1000});
    // filtro global continua selecionado e elimina datas fora do período.
    await page.locator('#startDate').fill('2026-09-30');await page.locator('#startDate').dispatchEvent('change');
    assert.ok((await chartData(id)).points.every(p=>p.filterValue>='2026-09-30'));

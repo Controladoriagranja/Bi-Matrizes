@@ -122,6 +122,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
     }
    }
    await card.locator('[data-expand]').click();assert.ok(await list.isVisible());await page.keyboard.press('Escape');
+   await page.setViewportSize({width:1440,height:1000});
    // Período vazio e carregamento, sem consulta nova para alternar Lote.
    await page.locator('#startDate').fill('2027-01-01');await page.locator('#startDate').dispatchEvent('change');assert.match(await list.textContent(),/Sem lotes no período selecionado/);
    delay=true;await page.locator('#refresh').click();assert.match(await list.textContent(),/Carregando lotes/);await complete();delay=false;
