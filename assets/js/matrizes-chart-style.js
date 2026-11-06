@@ -21,7 +21,7 @@
           offset:[0,0],distance:line?9:7,
           color:item.stack?'#fff':theme.fg,backgroundColor:item.stack?'#0009':theme.bg,
           borderRadius:3,padding:line?[2,3]:[1,2],fontSize:line?11:10,fontWeight:600,
-          formatter:params=>params.value==null||!selected[index].has(params.dataIndex)?'':MatrizesChartLayout.formatValue(data[params.dataIndex]?.[item.key],item.unit||spec.unit||'%',item.digits??spec.digits??1)}
+          formatter:params=>params.value==null||!selected[index].has(params.dataIndex)?'':MatrizesChartLayout.formatValue(data[params.dataIndex]?.[item.key],item.unit||spec.unit||'%',item.digits??spec.digits??2)}
       };
     });
   }

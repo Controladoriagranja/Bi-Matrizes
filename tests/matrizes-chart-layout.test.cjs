@@ -27,7 +27,7 @@ test('usa haste sutil quando acima e abaixo estão ocupados',()=>{
   assert.equal(placed.length,3);assert.ok(placed[2].guide);assert.equal(placed[2].guide[0][0],103);
 });
 
-test('formatos de percentual, float e inteiro',()=>{assert.equal(L.formatValue(96.93,'%',1),'96,9%');assert.equal(L.formatValue(1250.456,'g',2),'1.250,46');assert.equal(L.formatValue(63.28,'g/ave/dia',0),'63');});
+test('formatos de percentual, float e inteiro',()=>{assert.equal(L.formatValue(96.93),'96,93%');assert.equal(L.formatValue(1250.456,'g',2),'1.250,46');assert.equal(L.formatValue(63.28,'g/ave/dia',0),'63');});
 
 test('barras giram pela largura por barra e voltam a horizontal quando cabe',()=>{
   const item=candidate(0,100,{x:100,y:100,width:12,height:50},{line:false});

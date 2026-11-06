@@ -52,9 +52,9 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
    await selectEnd('');await refresh();assert.equal(await page.locator('#endDate').inputValue(),'');
    // Limpar filtros habilita o padrao novo; filtros especificos nao congelam seu fim.
    await page.locator('#clearFilters').click();assert.equal(await page.locator('#endDate').inputValue(),'2026-10-26');
-   await page.locator('[data-filter-choice="farm"] summary').click();await page.locator('[data-filter="farm"][value="GRANJA SALOME"]').check();
-   fixtures[main][3][field]='2026-10-27';await refresh();assert.equal(await page.locator('#endDate').inputValue(),'2026-10-27');assert.ok(await page.locator('[data-filter="farm"][value="GRANJA SALOME"]').isChecked());
-   await page.reload();await complete();assert.equal(await page.locator('#endDate').inputValue(),'2026-10-27');assert.ok(await page.locator('[data-filter="farm"][value="GRANJA SALOME"]').isChecked());
+   await page.locator('[data-filter-choice="farm"] summary').click();await page.locator('[data-filter="farm"][value="3094"]').check();
+   fixtures[main][3][field]='2026-10-27';await refresh();assert.equal(await page.locator('#endDate').inputValue(),'2026-10-27');assert.ok(await page.locator('[data-filter="farm"][value="3094"]').isChecked());
+   await page.reload();await complete();assert.equal(await page.locator('#endDate').inputValue(),'2026-10-27');assert.ok(await page.locator('[data-filter="farm"][value="3094"]').isChecked());
    await page.locator('#clearFilters').click();
    await page.locator('[data-month="10"]').click();await refresh();assert.equal(await page.locator('#startDate').inputValue(),'');assert.equal(await page.locator('#endDate').inputValue(),'');assert.ok(await page.locator('[data-month="10"]').evaluate(el=>el.classList.contains('active')));
    // Filtros antigos ambiguos sao preservados, incluindo 30/09; nenhum historico manual e apagado.

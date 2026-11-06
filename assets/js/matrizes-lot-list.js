@@ -32,7 +32,7 @@
     const element=document.createElement('section');element.className='mz-lot-list';element.id='lots-'+id;element.hidden=true;
     element.setAttribute('aria-label','Resultados por lote');let shown=10,signature='';
     const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const number=(value,digits=1)=>Number(value).toLocaleString('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits});
+    const number=(value,digits=2)=>Number(value).toLocaleString('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits});
     let current;
     function render(model){
       current=model;

@@ -63,7 +63,7 @@
       const [axisMin,axisMax]=axes.get(series.axis||0)||[0,1];
       for(const [index,priority] of priorities){
         const value=data[index][series.key];
-        const text=value.toLocaleString('pt-BR',{minimumFractionDigits:series.digits??spec.digits??1,maximumFractionDigits:series.digits??spec.digits??1})+((series.unit||spec.unit||'%')==='%'?'%':'');
+        const text=value.toLocaleString('pt-BR',{minimumFractionDigits:series.digits??spec.digits??2,maximumFractionDigits:series.digits??spec.digits??2})+((series.unit||spec.unit||'%')==='%'?'%':'');
         const x=50+(index+0.5)*Math.max(100,width-100)/Math.max(1,data.length);
         const ratio=(value-axisMin)/Math.max(1e-9,axisMax-axisMin);
         const y=65+(1-ratio)*Math.max(80,height-110);

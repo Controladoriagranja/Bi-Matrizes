@@ -20,7 +20,7 @@
     const title=page.kpis.find(item=>item[0]===key)?.[1]||key;
     const source=page.calc==='recria'?D.recriaFields(sex)[key]:sources[page.calc]?.[key];
     const values=rows.map(row=>D.simpleIndicators([row],page.calc,sex)[key]).filter(value=>Number.isFinite(value));
-    const format=number=>number==null?'—':number.toLocaleString('pt-BR',{maximumFractionDigits:2});
+    const format=number=>number==null?'—':number.toLocaleString('pt-BR',{minimumFractionDigits:Number.isInteger(number)?0:2,maximumFractionDigits:2});
     dialog.replaceChildren();
     const heading=document.createElement('h2');heading.id='mzFormulaTitle';heading.textContent=title;
     const close=document.createElement('button');close.className='mz-button';close.textContent='Fechar';close.addEventListener('click',()=>dialog.close());
@@ -33,7 +33,7 @@
   function openEggUse({rows,value}) {
     ensureDialog();dialog.replaceChildren();
     const values=rows.map(row=>D.n(row.raw.ovos_incubaveis_pct)).filter(value=>value!=null);
-    const format=number=>number==null?'—':number.toLocaleString('pt-BR',{maximumFractionDigits:2});
+    const format=number=>number==null?'—':number.toLocaleString('pt-BR',{minimumFractionDigits:Number.isInteger(number)?0:2,maximumFractionDigits:2});
     const heading=document.createElement('h2');heading.id='mzFormulaTitle';heading.textContent='Aproveitamento de ovos';
     const close=document.createElement('button');close.className='mz-button';close.textContent='Fechar';close.addEventListener('click',()=>dialog.close());
     dialog.append(heading,close);

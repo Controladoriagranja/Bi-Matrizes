@@ -27,18 +27,18 @@ for(const [id,page] of Object.entries(context.MatrizesPages)) {
   <script src="assets/js/api.js?v=20261008-filtros-abertos"></script>
   <script src="assets/js/theme.js?v=20261008-filtros-abertos"></script>
   <script src="assets/js/matrizes-settings.js?v=20261008-filtros-abertos"></script>
-  <script src="assets/js/matrizes-data.js?v=20261023-periodo-dinamico"></script>
-  <script src="assets/js/matrizes-pages.js?v=20261023-busca-lotes"></script>
+  <script src="assets/js/matrizes-data.js?v=20261106-fazenda-codigo"></script>
+  <script src="assets/js/matrizes-pages.js?v=20261106-duas-casas"></script>
   <script src="assets/js/matrizes-sidebar.js?v=20261008-filtros-abertos-sidebar"></script>
-  <script src="assets/js/matrizes-formulas.js?v=20261023-origem-ovos"></script>
-  <script src="assets/js/matrizes-chart-labels.js?v=20261008-filtros-abertos"></script>
-  <script src="assets/js/matrizes-chart-layout.js?v=20261008-filtros-abertos"></script>
-  <script src="assets/js/matrizes-chart-style.js?v=20261008-filtros-abertos"></script>
+  <script src="assets/js/matrizes-formulas.js?v=20261106-duas-casas"></script>
+  <script src="assets/js/matrizes-chart-labels.js?v=20261106-duas-casas"></script>
+  <script src="assets/js/matrizes-chart-layout.js?v=20261106-duas-casas"></script>
+  <script src="assets/js/matrizes-chart-style.js?v=20261106-duas-casas"></script>
   <script src="assets/js/matrizes-filter-search.js?v=20261023-busca-lotes"></script>
-  <script src="assets/js/matrizes-lot-list.js?v=20261023-busca-lotes"></script>
+  <script src="assets/js/matrizes-lot-list.js?v=20261106-duas-casas"></script>
   <script src="assets/js/matrizes-period-drill.js?v=20261023-busca-lotes"></script>
 ${id==='incubatorio'?'  <script src="assets/js/matrizes-egg-origin.js?v=20261023-ordenacao-br"></script>\n':''}  <script src="assets/js/mobile-filters.js?v=20261028-painel-movel"></script>
-  <script src="assets/js/matrizes-app.js?v=20261028-painel-movel"></script>
+  <script src="assets/js/matrizes-app.js?v=20261106-fazenda-codigo"></script>
 </body>
 </html>
 `,'utf8');

@@ -78,10 +78,10 @@
     for(const chart of page.charts) {
       const numeric=chart.id==='peso'||chart.id==='gad'||chart.calc==='incubation';
       chart.unit=numeric?chart.unit:'%';
-      chart.digits=chart.id==='gad'?0:numeric?2:1;
+      chart.digits=chart.id==='gad'?0:2;
       chart.series.forEach(item=>{
         item.unit=chart.id==='peso'&&item.key==='weightDiff'?'%':numeric?chart.unit:'%';
-        item.digits=chart.id==='peso'&&item.key==='weightDiff'?1:chart.digits;
+        item.digits=chart.digits;
       });
       if(chart.calc==='incubation')chart.labels={...chart.labels,maxLabels:24};
     }

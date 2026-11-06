@@ -64,10 +64,10 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
    }
    await open('farm');await page.locator('[data-search="farm"]').fill('sAo JoSe');
    assert.equal(await option('farm').evaluateAll(nodes=>nodes.filter(el=>!el.closest('label').hidden).length),1);
-   await page.locator('[data-filter="farm"][value="FAZENDA SÃO JOSÉ"]').check();
+   await page.locator('[data-filter="farm"][value="1972"]').check();
    assert.equal(await page.locator('[data-search="farm"]').inputValue(),'sAo JoSe','Busca preservada ao redesenhar');
    assert.equal(await page.locator('[data-filter="lineage"][value="COBB"]').count(),1);
-   await page.locator('[data-clear-search="farm"]').click();assert.ok(await page.locator('[data-filter="farm"][value="FAZENDA SÃO JOSÉ"]').isChecked());
+   await page.locator('[data-clear-search="farm"]').click();assert.ok(await page.locator('[data-filter="farm"][value="1972"]').isChecked());
    await page.locator('[data-filter-choice="farm"] summary').click();
    await open('lot');await page.locator('[data-filter="lot"][value="L30"]').check();
    await page.locator('[data-search="lot"]').fill('L0');await page.locator('[data-select-all="lot"]').check();
@@ -84,12 +84,12 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
     assert.ok(await list.isVisible());assert.equal(await page.locator('#chart-'+id).isVisible(),false);
     assert.equal(await list.locator('li').count(),10);assert.match(await list.locator('.mz-lot-more').textContent(),/10 de 31 lotes/);
     if(id==='producao'||id==='eclosao'){
-     assert.equal(await list.locator('.mz-lot-value').first().textContent(),'68,0%');
+     assert.equal(await list.locator('.mz-lot-value').first().textContent(),'68,00%');
      assert.equal(await list.locator('.mz-lot-dot').first().getAttribute('aria-label'),'Pior que a meta');
-     assert.match(await list.locator('.mz-lot-detail').first().textContent(),/-2,0 pontos percentuais/);
+     assert.match(await list.locator('.mz-lot-detail').first().textContent(),/-2,00 pontos percentuais/);
      assert.equal(await list.locator('.mz-lot-dot').nth(2).getAttribute('aria-label'),'Igual ou melhor que a meta');
     }
-    if(id==='ovos-aproveitamento')assert.equal(await list.locator('.mz-lot-value').first().textContent(),'40,0%','Media simples pronta');
+    if(id==='ovos-aproveitamento')assert.equal(await list.locator('.mz-lot-value').first().textContent(),'40,00%','Media simples pronta');
     if(id==='ovos-aproveitamento'||id==='descarte')assert.equal(await list.locator('.mz-lot-dot').count(),0,'Sem meta, sem bolinha');
     await list.locator('[data-lots-more]').click();assert.equal(await list.locator('li').count(),20);await list.locator('[data-lots-more]').click();assert.equal(await list.locator('li').count(),30);await list.locator('[data-lots-more]').click();assert.equal(await list.locator('li').count(),31);
     assert.equal(await list.locator('.mz-lot-name strong').filter({hasText:'Lote L01'}).count(),2,'Mesmo lote em fazendas diferentes');
@@ -102,7 +102,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
    }
    // Janela de oito semanas efetiva; Mostrar todas inclui historico e muda resultado.
    const id=ids[0],card=page.locator('#card-'+id),list=page.locator('#lots-'+id);
-   await card.locator('input[value=lote]').check();assert.equal(await list.locator('.mz-lot-value').first().textContent(),'68,0%');
+   await card.locator('input[value=lote]').check();assert.equal(await list.locator('.mz-lot-value').first().textContent(),'68,00%');
    await page.locator('#toggleWeeks').click();assert.equal(await list.locator('.mz-lot-name strong').first().textContent(),'Lote L02');
    await page.locator('#toggleWeeks').click();assert.equal(await list.locator('.mz-lot-name strong').first().textContent(),'Lote L01');assert.equal(await list.evaluate(el=>el.scrollTop),0,'Novo contexto comeca pelos piores lotes');
    await card.locator('input[value=semana]').check();

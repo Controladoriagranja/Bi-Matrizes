@@ -1,6 +1,22 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const D=require('../assets/js/matrizes-data.js');
+test('fazendas homônimas mantêm código, nome e identidade separados em todas as fontes',()=>{
+  for(const [table,date] of [['granja','data'],['acerto_produtor_recria','ini_semana'],['acerto_produtor_producao','ini_semana'],['inc','recebimento'],['eclosao','eclosao'],['incubacao','data_incubacao'],['embrio','data']]){
+    const records=['1972','3094'].map(code=>({[date]:'2026-10-05',lote:'412',cab_lote:'412',cab_cod:code,cab_granja:'GRANJA SALOME LTDA',granja:code+' - GRANJA SALOME LTDA',integrado:code+' - GRANJA SALOME LTDA'}));
+    const rows=D.prepare(table,records);
+    assert.equal(rows.length,2,table);assert.deepEqual(rows.map(row=>row.farmKey),['1972','3094']);
+    assert.deepEqual(rows.map(row=>row.farm),['1972 - GRANJA SALOME LTDA','3094 - GRANJA SALOME LTDA']);
+  }
+});
+test('código separado ou no texto é reaproveitado sem inventar código para nome isolado',()=>{
+  assert.deepEqual(D.farmIdentity({granja_codigo:'1972',granja_nome:'GRANJA SALOME LTDA'}),{code:'1972',name:'GRANJA SALOME LTDA',key:'1972',label:'1972 - GRANJA SALOME LTDA'});
+  assert.equal(D.farmIdentity({granja:'3094 GRANJA SALOME LTDA'}).key,'3094');
+  assert.equal(D.farmIdentity({integrado:'3094 - GRANJA SALOME LTDA'}).label,'3094 - GRANJA SALOME LTDA');
+  assert.equal(D.farmIdentity({granja_nome:'GRANJA SALOME LTDA',granja:'3094 - GRANJA SALOME LTDA'}).key,'3094');
+  assert.equal(D.farmIdentity({granja_nome:'SEM CÓDIGO'}).label,'SEM CÓDIGO');
+  assert.equal(D.farmIdentity({granja_codigo:'1972'}).label,'1972');
+});
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} ≠ ${b}`);
 test('números do PostgreSQL e dos relatórios brasileiros, sem converter ausência em zero',()=>{
   assert.equal(D.n(14.628),14.628);assert.equal(D.n('14.628'),14628);assert.equal(D.n('1.428.180'),1428180);

@@ -54,7 +54,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
    // Search/cascade change only the draft, not the charts, counters or session.
    await choice(page,'farm');await page.locator('[data-search="farm"]').fill('sAo joSe');
    assert.equal(await page.locator('[data-filter="farm"]').evaluateAll(nodes=>nodes.filter(el=>!el.closest('label').hidden).length),1);
-   await page.locator('[data-filter="farm"][value="FAZENDA SÃO JOSÉ"]').check();
+   await page.locator('[data-filter="farm"][value="1972"]').check();
    assert.equal(await chartState(page),before);assert.equal(await page.locator('#kpis').textContent(),kpis);
    assert.match(await page.locator('.mobile-filter-footer p').textContent(),/Seleções alteradas/);
    assert.equal(await page.evaluate(()=>JSON.stringify(sessionStorage)),sessionBefore,'Rascunho não é salvo como aplicado');
@@ -75,7 +75,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
    await open(page);await page.locator('#clearFilters').click();await apply(page);assert.equal(await chartState(page),before);
    if(file==='incubatorio.html'){
     await open(page);await page.locator('[data-filter="origin"][value="Terceiros"]').check();assert.equal(await chartState(page),before);
-    assert.equal(await page.locator('[data-filter="farm"]').count(),1,'Origem afunila fazendas no rascunho');await apply(page);assert.notEqual(await chartState(page),before);
+    assert.equal(await page.locator('[data-filter="farm"]').count(),2,'Fazenda mantém catálogo completo mesmo com origem selecionada');await apply(page);assert.notEqual(await chartState(page),before);
     await open(page);await page.locator('#clearFilters').click();await apply(page);assert.equal(await chartState(page),before);
    }
    // Applying a pending draft once when crossing to desktop; same nodes return home.

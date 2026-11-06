@@ -52,17 +52,25 @@
   }
   const positive = v => n(v) > 0 ? n(v) : null;
   const farmName = v => text(v).replace(/^\d+\s*[-–]?\s*/, '');
+  function farmIdentity(raw) {
+    const original=text(raw.cab_granja||raw.granja_nome||raw.granja||raw.integrado);
+    const prefix=[raw.cab_granja,raw.granja_nome,raw.granja,raw.integrado].map(text).map(value=>value.match(/^(\d+)(?:\s|[-–]|$)/)?.[1]).find(Boolean);
+    const code=text(raw.granja_codigo||raw.cab_cod)||prefix||'';
+    const name=farmName(original);
+    return {code,name,key:code||name,label:code?(name?`${code} - ${name}`:code):name};
+  }
   const statusName = v => /aberto|ativ/i.test(text(v)) ? 'Ativos' : /fechado|encerr/i.test(text(v)) ? 'Encerrados' : text(v);
 
   function normalize(table, raw) {
     const d = date(table.startsWith('acerto_') ? raw.ini_semana : table === 'eclosao' ? raw.eclosao : table === 'incubacao' ? raw.data_incubacao : table === 'inc' ? raw.recebimento : raw.data);
+    const farm=farmIdentity(raw);
     const reportLot=text(raw.cab_lote || raw.lote);
     const lotMatch=raw.cab_lote?reportLot.match(/^(\d+)\.\d+P?$/i):null;
     const house=text(raw.cab_galpao || raw.galpao);
     return {
       raw, table, date: iso(d), year: d ? String(d.getUTCFullYear()) : '',
       month: d ? String(d.getUTCMonth() + 1) : '', week: week(d),
-      farm: farmName(raw.cab_granja || raw.granja_nome || raw.granja || raw.integrado),
+      farm:farm.label,farmKey:farm.key,farmCode:farm.code,farmName:farm.name,
       lot: lotMatch?lotMatch[1]:reportLot, house: /^\d+$/.test(house)?String(Number(house)):house,
       lineage: text(raw.cab_linhagem || raw.linhagem), age: n(raw.ida_sem ?? raw.idade),
       origin: text(raw.origem), status: statusName(raw.situacao),
@@ -220,7 +228,7 @@
     const dailyLots = new Set(rows.filter(r=>/di.rio/i.test(text(r.raw.tipo_movto))).map(r=>JSON.stringify([r.company,r.unit,r.lot,r.house])));
     return rows.filter(r=>!dailyLots.has(JSON.stringify([r.company,r.unit,r.lot,r.house]))||/di.rio/i.test(text(r.raw.tipo_movto)));
   }
-  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,normalize,prepare,group,previousTwoMonths,defaultPeriod,lifeWeekGroups,chartGroups,periodReferenceDate,monthlyTarget,recriaFields,mean,simpleIndicators,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
+  const api = {n,text,date,iso,week,ratio,sum,rate,weighted,farmIdentity,normalize,prepare,group,previousTwoMonths,defaultPeriod,lifeWeekGroups,chartGroups,periodReferenceDate,monthlyTarget,recriaFields,mean,simpleIndicators,recria,production,curve,hatch,stockDays,incubation,embryo,preferDaily};
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
   else root.MatrizesData=api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -31,6 +31,7 @@
     }
   } catch (_) { /* A sessão pode impedir armazenamento. */ }
   if(eggOrigin&&state.filters.origin)state.filters.origin=new Set([...state.filters.origin].map(eggOrigin.canonical).filter(Boolean));
+  const filterValue=(row,key)=>String(key==='farm'?(row.farmKey??row.farm??''):(row[key]??''));
   const selected=key=>state.filters[key]||(state.filters[key]=new Set());
   function saveFilters() {
     state.hasSavedFilters=true;
@@ -115,7 +116,7 @@
   function matches(row,skip,allPeriods=false) {
     for(const [key,values] of Object.entries(state.filters)) {
       if(key===skip||skip?.has?.(key)||!values.size||allPeriods&&['year','month','week'].includes(key))continue;
-      if(!values.has(String(row[key]??'')))return false;
+      if(!values.has(filterValue(row,key)))return false;
     }
     if(state.chartSelection&&String(groupValue(row,state.chartSelection.key))!==state.chartSelection.value)return false;
     return allPeriods||(!state.start||row.date>=state.start)&&(!state.end||row.date<=state.end);
@@ -260,19 +261,20 @@
     return `<fieldset class="mz-filter mz-origin-filter"><legend>Origem dos ovos</legend><div class="mz-origin-flags">${['Própria','Terceiros'].map(value=>`<label class="${sel.has(value)?'active':''}"><input type="checkbox" data-filter="origin" value="${value}" ${sel.has(value)?'checked':''} ${state.complete&&!available.has(value)&&!sel.has(value)?'disabled':''}><span>${value}</span></label>`).join('')}</div></fieldset>`;
   }
   function filterChoice(key,rows) {
-    const values=[...new Set(rows.map(r=>String(r[key]??'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+    const labels=new Map(rows.map(row=>[filterValue(row,key),row.farm]));
+    const values=[...new Set(rows.map(row=>filterValue(row,key)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
     if(!values.length&&['stage','origin','status','house','lineage'].includes(key))return '';
     const sel=selected(key),label=filterLabels[key];
     const allValues=values;
-    const display=v=>key==='week'?groupLabel(v,'week'):v;
+    const display=v=>key==='farm'?labels.get(v):key==='week'?groupLabel(v,'week'):v;
     return `<div class="mz-filter ${['lineage','lot'].includes(key)?'mz-linked-filter':''}"><span id="label-${key}">${label}</span><details class="mz-choice" data-filter-choice="${key}"><summary aria-labelledby="label-${key}">${sel.size?`${sel.size} selecionado(s)`:'Todos'}</summary><div class="mz-options">${MatrizesFilterSearch.markup(key,label,escape)}${selectAllControl(key)}${allValues.map(value=>`<label class="mz-filter-option"><input type="checkbox" data-filter="${key}" value="${escape(value)}" ${sel.has(value)?'checked':''}><span>${escape(display(value))}</span></label>`).join('')}<p class="mz-unavailable mz-search-empty" role="status" hidden>Nenhum resultado</p></div></details></div>`;
   }
   function reconcileFilters(changed) {
     const rows=sexRows(allRows());
-    const context=rows.filter(row=>!selected(changed).size||selected(changed).has(String(row[changed]??'')));
+    const context=rows.filter(row=>!selected(changed).size||selected(changed).has(filterValue(row,changed)));
     for(const [key,values] of Object.entries(state.filters)) {
-      if(key===changed)continue;
-      const available=new Set(context.map(row=>String(row[key]??'')));
+      if(key===changed||key==='farm')continue;
+      const available=new Set(context.map(row=>filterValue(row,key)));
       for(const value of values)if(!available.has(value))values.delete(value);
     }
   }
@@ -284,7 +286,8 @@
     const searchFocus=active?.matches('[data-search]')?{key:active.dataset.search,start:active.selectionStart,end:active.selectionEnd}:null;
     const searches=Object.fromEntries([...document.querySelectorAll('[data-search]')].map(el=>[el.dataset.search,el.value]));
     const rows=sexRows(allRows());
-    const choices=key=>filterChoice(key,rows.filter(row=>matches(row,key)));
+    // Fazenda sempre lista o catálogo dos dados carregados, sem corte por período ou cascata.
+    const choices=key=>filterChoice(key,key==='farm'?allRows():rows.filter(row=>matches(row,key)));
 
     const orderedFilters=page.filters.filter(key=>!eggOrigin||key!=='origin').flatMap(key=>key==='lineage'&&page.filters.includes('lot')?[]:key==='lot'&&page.filters.includes('lineage')?['lineage','lot']:[key]);
     $('filterFields').innerHTML=choices('year')+`
@@ -365,14 +368,14 @@
     }
     chart.mzPoints=data;chart.mzSpec=spec;
     const series=MatrizesChartStyle.series(spec,data,c,$(`chart-${spec.id}`).clientWidth,$(`chart-${spec.id}`).clientHeight,chart);
-    const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,formatter:v=>MatrizesChartLayout.formatValue(v,unit,spec.digits??1)+(unit==='%'?'':` ${unit}`)},splitLine:{lineStyle:{color:c.grid}}};
+    const axis={type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{fontSize:11,color:c.text,formatter:v=>MatrizesChartLayout.formatValue(v,unit,spec.digits??2)+(unit==='%'?'':` ${unit}`)},splitLine:{lineStyle:{color:c.grid}}};
     chart.setOption({
       animationDuration:250,color:c.series,textStyle:{fontFamily:'Geist Variable, Geist, sans-serif',color:c.text},
       tooltip:{trigger:'axis',backgroundColor:c.bg,borderColor:c.grid,textStyle:{color:c.fg,fontSize:13},formatter:params=>{const items=Array.isArray(params)?params:[params];const point=data[items[0]?.dataIndex];return `${escape(point?.label||'')}<br>${items.map(item=>{const series=spec.series[item.seriesIndex];const value=point?.[series.key];return `${item.marker}${escape(series.name)} (${escape(series.unit||unit)}): ${value==null?'Sem medição':MatrizesChartLayout.formatValue(value,series.unit||unit,series.digits??spec.digits??2)}`;}).join('<br>')}`;}},
       legend:{bottom:0,type:'scroll',formatter:name=>{const series=spec.series.find(item=>item.name===name);return pageId==='recria'?`${name} (${series?.unit||unit})`:name;},textStyle:{color:c.text,fontSize:11},itemWidth:13,itemHeight:7},
       grid:{top:65,left:12,right:hasSecond?12:18,bottom:data.length>24?66:38,containLabel:true},
       xAxis:{type:'category',triggerEvent:periodControls.has(spec.id),data:data.map(p=>p.label),axisLine:{lineStyle:{color:c.grid}},axisTick:{show:false},axisLabel:{fontSize:11,lineHeight:15,color:c.text,hideOverlap:!spec.lifeWeeks,interval:spec.lifeWeeks?0:'auto'}},
-      yAxis:hasSecond?[axis,{...axis,position:'right',splitLine:{show:false},axisLabel:{...axis.axisLabel,formatter:v=>MatrizesChartLayout.formatValue(v,spec.series.find(s=>s.axis===1).unit||'%',spec.series.find(s=>s.axis===1).digits??1)}}]:axis,
+      yAxis:hasSecond?[axis,{...axis,position:'right',splitLine:{show:false},axisLabel:{...axis.axisLabel,formatter:v=>MatrizesChartLayout.formatValue(v,spec.series.find(s=>s.axis===1).unit||'%',spec.series.find(s=>s.axis===1).digits??2)}}]:axis,
       dataZoom:data.length>24?[{type:'inside',start:0,end:100},{type:'slider',height:13,bottom:22,borderColor:c.grid,textStyle:{color:c.text,fontSize:10}}]:[],
       graphic:hasData?[]:[{type:'text',left:'center',top:'middle',style:{text:state.loaded?'Sem dados para os filtros selecionados':'Aguardando dados da API',font:'14px "Geist Variable", sans-serif',fill:c.text}}],
       series
@@ -526,6 +529,20 @@
         for(const row of state.extra)row.origin=eggOrigin.resolve(row,reference);
       }
       state.loaded=true;
+      // Seleções antigas eram nomes e representavam todos os códigos homônimos.
+      // Preserva esse alcance sem escolher silenciosamente apenas uma fazenda.
+      function migrateFarmSelection() {
+        const values=selected('farm'),rows=allRows(),keys=new Set(rows.map(row=>filterValue(row,'farm')));
+        const migrated=new Set();
+        for(const value of values){
+          if(keys.has(value)){migrated.add(value);continue;}
+          const matches=rows.filter(row=>row.farm===value||row.farmName===value);
+          if(matches.length)matches.forEach(row=>migrated.add(filterValue(row,'farm')));
+          else migrated.add(value);
+        }
+        state.filters.farm=migrated;
+      }
+      migrateFarmSelection();if(draft)withDraft(migrateFarmSelection);
       function removeUnavailableFilters() {
         if(pageId==='producao')selected('year').delete('2025');
         const supported=new Set(['year','month','week',...page.filters]);

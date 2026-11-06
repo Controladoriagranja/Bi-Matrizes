@@ -1,7 +1,7 @@
-﻿/* Geometria real dos rótulos, independente das medidas e dos datasets. */
+/* Geometria real dos rótulos, independente das medidas e dos datasets. */
 (function(root){
   'use strict';
-  function formatValue(value,unit='%',digits=1){
+  function formatValue(value,unit='%',digits=2){
     if(value==null||!Number.isFinite(Number(value)))return '—';
     return Number(value).toLocaleString('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits})+(unit==='%'?'%':'');
   }
@@ -96,7 +96,7 @@
       if(series.type==='line'&&spec.series.some(item=>item.type==='bar'))return;
       for(const index of selected[seriesIndex]){
         const value=data[index]?.[series.key];if(value==null)continue;
-        const line=series.type==='line',text=formatValue(value,series.unit||spec.unit||'%',series.digits??spec.digits??1);
+        const line=series.type==='line',text=formatValue(value,series.unit||spec.unit||'%',series.digits??spec.digits??2);
         const measured=new root.echarts.graphic.Text({style:{text,font:`600 ${line?11:10}px "Geist Variable", sans-serif`}}).getBoundingRect();
         job.candidates.set(`${seriesIndex}:${index}`,{seriesIndex,index,line,stack:!!series.stack,width:measured.width+4,height:measured.height+2,
           color:theme.series[series.color??seriesIndex%theme.series.length],value:spec.visualShares?.[series.key]??value,

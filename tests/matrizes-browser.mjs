@@ -63,6 +63,7 @@ try {
       series:JSON.stringify(option.series.map(item=>item.data)),tooltip:option.tooltip[0].formatter(chart.mzSpec.series.map((_,index)=>({seriesIndex:index,dataIndex:0,marker:''}))),
       positions:positions.map(({seriesIndex,index,x,y,width,height,rotation,inside,external})=>({seriesIndex,index,x,y,width,height,rotation,inside,external}))};
   });
+  await page.clock.setFixedTime(new Date('2026-10-23T15:00:00Z'));
   const metrics=[];
 
   if(!filtersOnly&&!examplePaths.length){
@@ -82,7 +83,7 @@ try {
         await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);await settle();
         assert.deepEqual(await targetValues(),[3,3,3,2.5,2.5,null]);
         const tooltip=await page.locator('#chart-cama').evaluate(el=>echarts.getInstanceByDom(el).getOption().tooltip[0].formatter([{seriesIndex:1,dataIndex:3,marker:''}]));
-        assert.match(tooltip,/Meta \/ STD \(%\).*2,5%/);
+        assert.match(tooltip,/Meta \/ STD \(%\).*2,50%/);
         await page.locator('#chart-cama').scrollIntoViewIfNeeded();
         await page.locator('#chart-cama').screenshot({path:path.join(screenshotDir,`cama-metas-${width}-${theme}.png`)});
       }
