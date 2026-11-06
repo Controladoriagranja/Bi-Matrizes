@@ -186,8 +186,8 @@ try {
     await page.locator('#toggleWeeks').click();assert.equal(await page.locator('#toggleWeeks').getAttribute('aria-pressed'),'true');
     await page.locator('#toggleWeeks').click();assert.equal(await page.locator('#toggleWeeks').getAttribute('aria-pressed'),'false');
     } else assert.equal(await page.locator('#toggleWeeks').isVisible(),false);
-    await page.locator('[data-formula]').first().click();assert.equal(await page.locator('.mz-formula-dialog').isVisible(),true);
-    assert.match(await page.locator('.mz-formula-dialog').textContent(),/Média simples/);await page.keyboard.press('Escape');
+    await page.locator('.mz-kpi .if-button').first().click();assert.equal(await page.locator('#indicatorFormulaDialog').isVisible(),true);
+    assert.match(await page.locator('#indicatorFormulaDialog').textContent(),/média simples/i);await page.keyboard.press('Escape');
     await page.evaluate(()=>document.querySelector('.mz-layout').scrollTop=700);
     assert.ok(await page.locator('.mz-layout').evaluate(el=>el.scrollTop)>0,'O conteúdo realmente rolou');
     assert.equal(await page.locator('.mz-topbar').evaluate(el=>el.getBoundingClientRect().top),0);

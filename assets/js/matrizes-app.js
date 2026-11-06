@@ -161,7 +161,7 @@
           <div class="mz-week-controls" ${pageId==='recria'?'hidden':''}><span id="weekLimitCaption">Até 8 Semanas por Gráfico</span><button id="toggleWeeks" class="mz-button" aria-pressed="false">Mostrar Todas as Semanas</button></div>
           <div id="chartSelectionStatus" class="mz-selection-status hidden" role="status"></div>
           <section class="mz-charts" aria-label="Gráficos">${page.charts.map((spec,index)=>`${spec.section&&spec.section!==page.charts[index-1]?.section?`<h2 class="mz-section-title">${spec.section}</h2>`:''}
-            <article class="mz-chart-card ${spec.wide?'wide':''}" id="card-${spec.id}"><div class="mz-chart-head"><div><h2>${spec.title}</h2><p id="caption-${spec.id}">${spec.axis} · ${spec.unit||'Percentual'}</p></div><div class="mz-chart-actions">${spec.calc==='eggUse'?`<button type="button" class="mini-button" data-egg-formula="${spec.id}" aria-label="Ver fórmula de ${spec.title}" title="Ver fórmula"><span class="formula-fx">ƒx</span></button>`:''}<button type="button" data-table="${spec.id}" aria-expanded="false" aria-controls="table-${spec.id}">Dados</button><button type="button" data-expand="${spec.id}" aria-label="Ampliar ${spec.title}" aria-expanded="false">⤢</button></div></div><div id="chart-${spec.id}" class="mz-chart" role="img" aria-label="${spec.title}. Os valores estão disponíveis no botão Dados."></div><div id="table-${spec.id}" class="mz-table-wrap hidden"></div></article>`).join('')}${eggOrigin?`<article class="mz-chart-card wide" id="card-ovos-registros"><div class="mz-chart-head"><div><h2>Aproveitamento de ovos — registros</h2><p>Recebimento · Registros do período selecionado</p></div><div class="mz-chart-actions"><button type="button" class="mini-button" data-egg-formula="registros" aria-label="Ver fórmula do aproveitamento de ovos" title="Ver fórmula"><span class="formula-fx">ƒx</span></button></div></div><p class="mz-egg-summary" id="eggSummary"></p><div id="eggRecords" class="mz-table-wrap"></div></article>`:''}</section>
+            <article class="mz-chart-card ${spec.wide?'wide':''}" id="card-${spec.id}"><div class="mz-chart-head"><div><h2>${spec.title}</h2><p id="caption-${spec.id}">${spec.axis} · ${spec.unit||'Percentual'}</p></div><div class="mz-chart-actions"><span data-formula-mount="${FormulaRegistry.chartIds(spec)}"></span><button type="button" data-table="${spec.id}" aria-expanded="false" aria-controls="table-${spec.id}">Dados</button><button type="button" data-expand="${spec.id}" aria-label="Ampliar ${spec.title}" aria-expanded="false">⤢</button></div></div><div id="chart-${spec.id}" class="mz-chart" role="img" aria-label="${spec.title}. Os valores estão disponíveis no botão Dados."></div><div id="table-${spec.id}" class="mz-table-wrap hidden"></div></article>`).join('')}${eggOrigin?`<article class="mz-chart-card wide" id="card-ovos-registros"><div class="mz-chart-head"><div><h2>Aproveitamento de ovos — registros</h2><p>Recebimento · Registros do período selecionado</p></div><div class="mz-chart-actions"><span data-formula-mount="eggUse.eggUse eggUse.records"></span></div></div><p class="mz-egg-summary" id="eggSummary"></p><div id="eggRecords" class="mz-table-wrap"></div></article>`:''}</section>
 
           <footer class="mz-footer"><span id="periodCaption">Selecione o contexto nos filtros.</span></footer>
         </main>
@@ -170,17 +170,6 @@
     const resizeHeader=()=>document.documentElement.style.setProperty('--mz-header-height',`${header.getBoundingClientRect().height}px`);
     new ResizeObserver(resizeHeader).observe(header);resizeHeader();
     if(window.ThemeManager)document.querySelector('[data-theme-icon]').textContent=ThemeManager.get()==='dark'?'☀':'☾';
-    $('kpis').addEventListener('click',event=>{const button=event.target.closest('[data-formula]');if(button)MatrizesFormulaUI.open({key:button.dataset.formula,page,sex:state.sex,rows:filtered(state.rows),value:D.simpleIndicators(filtered(state.rows),page.calc,state.sex)[button.dataset.formula]});});
-    document.querySelectorAll('[data-egg-formula]').forEach(button=>button.addEventListener('click',()=>{
-      const spec=page.charts.find(item=>item.id===button.dataset.eggFormula);
-      let rows=spec?chartRows(spec):filtered(state.inc);
-      if(spec){
-        const visible=state.charts.get(spec.id)?.mzPoints||[],key=visible[0]?.filterKey;
-        const values=new Set(visible.map(point=>point.filterValue));
-        rows=rows.filter(row=>key&&values.has(String(groupValue(row,key))));
-      }
-      MatrizesFormulaUI.openEggUse({rows,value:eggOrigin.average(rows,D).eggUse});
-    }));
     if(eggOrigin)$('eggRecords').addEventListener('click',event=>{
       const button=event.target.closest('[data-egg-sort]');if(!button)return;
       const key=button.dataset.eggSort;
@@ -322,7 +311,7 @@
   }
   function renderKpis(rows) {
     const data=D.simpleIndicators(rows,page.calc,state.sex),context='Média simples do período selecionado';
-    $('kpis').innerHTML=page.kpis.map(([key,label,unit])=>`<article class="mz-kpi"><button type="button" class="mini-button mz-formula-button" data-formula="${key}" aria-label="Ver fórmula de ${label}" title="Ver fórmula"><span class="formula-fx">ƒx</span></button><span>${label}</span><strong>${format(data[key],unit,unit==='g'?0:2)}</strong><small>${data[key]==null?`Sem medição disponível · ${context}`:context}</small></article>`).join('');
+    $('kpis').innerHTML=page.kpis.map(([key,label,unit])=>`<article class="mz-kpi"><span data-formula-mount="${page.calc}.${key}"></span><span>${label}</span><strong>${format(data[key],unit,unit==='g'?0:2)}</strong><small>${data[key]==null?`Sem medição disponível · ${context}`:context}</small></article>`).join('');
   }
   function colors() {
     const css=getComputedStyle(document.documentElement);

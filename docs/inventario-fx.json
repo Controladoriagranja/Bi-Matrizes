@@ -1,0 +1,1004 @@
+[
+  {
+    "screen": "Recria",
+    "title": "Viabilidade",
+    "kind": "KPI",
+    "ids": [
+      "recria.viab"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → recria por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "Uniformidade",
+    "kind": "KPI",
+    "ids": [
+      "recria.uniform"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → recria por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "Peso Médio",
+    "kind": "KPI",
+    "ids": [
+      "recria.weight"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → recria por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "GAD",
+    "kind": "KPI",
+    "ids": [
+      "recria.gad"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → recria por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "Viabilidade",
+    "kind": "Gráfico",
+    "chart": "viabilidade",
+    "ids": [
+      "recria.viab",
+      "recria.viabStd",
+      "recria.viabDiff"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.recria",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "Viabilidade — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "viabilidade",
+    "ids": [
+      "recria.viab",
+      "recria.viabStd",
+      "recria.viabDiff"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "Uniformidade e CV",
+    "kind": "Gráfico",
+    "chart": "uniformidade",
+    "ids": [
+      "recria.uniform",
+      "recria.uniformStd",
+      "recria.cv"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.recria",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "Uniformidade e CV — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "uniformidade",
+    "ids": [
+      "recria.uniform",
+      "recria.uniformStd",
+      "recria.cv"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "Peso Médio",
+    "kind": "Gráfico",
+    "chart": "peso",
+    "ids": [
+      "recria.weight",
+      "recria.weightStd",
+      "recria.weightDiff"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.recria",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "Peso Médio — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "peso",
+    "ids": [
+      "recria.weight",
+      "recria.weightStd",
+      "recria.weightDiff"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "GAD (Gramas por Ave por Dia)",
+    "kind": "Gráfico",
+    "chart": "gad",
+    "ids": [
+      "recria.gad",
+      "recria.gadStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.recria",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Recria",
+    "title": "GAD (Gramas por Ave por Dia) — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "gad",
+    "ids": [
+      "recria.gad",
+      "recria.gadStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Produção",
+    "kind": "KPI",
+    "ids": [
+      "production.production"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → production por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Aproveitamento",
+    "kind": "KPI",
+    "ids": [
+      "production.use"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → production por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Ovos de Cama",
+    "kind": "KPI",
+    "ids": [
+      "production.bed"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → production por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Perdas",
+    "kind": "KPI",
+    "ids": [
+      "production.loss"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → production por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Produção Semanal",
+    "kind": "Gráfico",
+    "chart": "producao",
+    "ids": [
+      "production.production",
+      "production.productionStd",
+      "production.diff"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.production",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Produção Semanal — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "producao",
+    "ids": [
+      "production.production",
+      "production.productionStd",
+      "production.diff"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Produção Semanal — Lote",
+    "kind": "Lista por lote",
+    "chart": "producao",
+    "ids": [
+      "production.production"
+    ],
+    "before": "não",
+    "source": "MatrizesLotList.aggregate → mesma calc, período e filtros do card",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Aproveitamento na Granja",
+    "kind": "Gráfico",
+    "chart": "aproveitamento",
+    "ids": [
+      "production.use",
+      "production.loss",
+      "production.useStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.production",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Aproveitamento na Granja — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "aproveitamento",
+    "ids": [
+      "production.use",
+      "production.loss",
+      "production.useStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Aproveitamento na Granja — Lote",
+    "kind": "Lista por lote",
+    "chart": "aproveitamento",
+    "ids": [
+      "production.use"
+    ],
+    "before": "não",
+    "source": "MatrizesLotList.aggregate → mesma calc, período e filtros do card",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Ovos de Cama",
+    "kind": "Gráfico",
+    "chart": "cama",
+    "ids": [
+      "production.bed",
+      "production.bedStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.production",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Ovos de Cama — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "cama",
+    "ids": [
+      "production.bed",
+      "production.bedStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Perdas da Produção",
+    "kind": "Gráfico",
+    "chart": "perdas",
+    "ids": [
+      "production.trincado",
+      "production.vazado",
+      "production.sujo",
+      "production.duas_gemas",
+      "production.deformado",
+      "production.pequeno"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.production",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Perdas da Produção — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "perdas",
+    "ids": [
+      "production.trincado",
+      "production.vazado",
+      "production.sujo",
+      "production.duas_gemas",
+      "production.deformado",
+      "production.pequeno"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Produção por Dia",
+    "kind": "Gráfico",
+    "chart": "diaria",
+    "ids": [
+      "production.production",
+      "production.productionStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.production",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Produção por Dia — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "diaria",
+    "ids": [
+      "production.production",
+      "production.productionStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Curva de Produção por Lote",
+    "kind": "Gráfico",
+    "chart": "curva",
+    "ids": [
+      "curve.production",
+      "curve.productionStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.curve",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção de Ovos",
+    "title": "Curva de Produção por Lote — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "curva",
+    "ids": [
+      "curve.production",
+      "curve.productionStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão",
+    "kind": "KPI",
+    "ids": [
+      "hatch.hatch"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → hatch por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "STD Eclosão",
+    "kind": "KPI",
+    "ids": [
+      "hatch.hatchStd"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → hatch por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Descarte",
+    "kind": "KPI",
+    "ids": [
+      "hatch.discard"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → hatch por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão Semanal",
+    "kind": "Gráfico",
+    "chart": "eclosao",
+    "ids": [
+      "hatch.hatch",
+      "hatch.hatchStd",
+      "hatch.diff"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.hatch",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão Semanal — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "eclosao",
+    "ids": [
+      "hatch.hatch",
+      "hatch.hatchStd",
+      "hatch.diff"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão Semanal — Lote",
+    "kind": "Lista por lote",
+    "chart": "eclosao",
+    "ids": [
+      "hatch.hatch"
+    ],
+    "before": "não",
+    "source": "MatrizesLotList.aggregate → mesma calc, período e filtros do card",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Descarte de Pintos",
+    "kind": "Gráfico",
+    "chart": "descarte",
+    "ids": [
+      "hatch.discard",
+      "hatch.discardTarget"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.hatch",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Descarte de Pintos — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "descarte",
+    "ids": [
+      "hatch.discard",
+      "hatch.discardTarget"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Descarte de Pintos — Lote",
+    "kind": "Lista por lote",
+    "chart": "descarte",
+    "ids": [
+      "hatch.discard"
+    ],
+    "before": "não",
+    "source": "MatrizesLotList.aggregate → mesma calc, período e filtros do card",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão por Mês",
+    "kind": "Gráfico",
+    "chart": "eclosao-mes",
+    "ids": [
+      "hatch.hatch",
+      "hatch.hatchStd",
+      "hatch.diff"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.hatch",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão por Mês — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "eclosao-mes",
+    "ids": [
+      "hatch.hatch",
+      "hatch.hatchStd",
+      "hatch.diff"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Descarte por Mês",
+    "kind": "Gráfico",
+    "chart": "descarte-mes",
+    "ids": [
+      "hatch.discard",
+      "hatch.discardTarget"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.hatch",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Descarte por Mês — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "descarte-mes",
+    "ids": [
+      "hatch.discard",
+      "hatch.discardTarget"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão por Faixa Etária",
+    "kind": "Gráfico",
+    "chart": "etaria",
+    "ids": [
+      "hatch.young",
+      "hatch.middle",
+      "hatch.old"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.hatch",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão por Faixa Etária — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "etaria",
+    "ids": [
+      "hatch.young",
+      "hatch.middle",
+      "hatch.old"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosões Anuais",
+    "kind": "Gráfico",
+    "chart": "anual",
+    "ids": [
+      "hatch.hatch",
+      "hatch.hatchStd",
+      "hatch.diff",
+      "context.annual"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.hatch",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosões Anuais — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "anual",
+    "ids": [
+      "hatch.hatch",
+      "hatch.hatchStd",
+      "hatch.diff",
+      "context.annual"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão por Idade",
+    "kind": "Gráfico",
+    "chart": "idade",
+    "ids": [
+      "hatch.hatch",
+      "hatch.hatchStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.hatch",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Eclosão por Idade — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "idade",
+    "ids": [
+      "hatch.hatch",
+      "hatch.hatchStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Incubação",
+    "kind": "Gráfico",
+    "chart": "incubacao",
+    "ids": [
+      "incubation.incubated",
+      "incubation.incubationTarget"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.incubation",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Incubação — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "incubacao",
+    "ids": [
+      "incubation.incubated",
+      "incubation.incubationTarget"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Dias em Estoque do Ovo Incubado",
+    "kind": "Gráfico",
+    "chart": "estoque",
+    "ids": [
+      "incubation.minimum",
+      "incubation.stock",
+      "incubation.maximum"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.incubation",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Dias em Estoque do Ovo Incubado — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "estoque",
+    "ids": [
+      "incubation.minimum",
+      "incubation.stock",
+      "incubation.maximum"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Aproveitamento de Ovos por Semana",
+    "kind": "Gráfico",
+    "chart": "ovos-aproveitamento",
+    "ids": [
+      "eggUse.eggUse"
+    ],
+    "before": "sim: fx de Aproveitamento de ovos",
+    "source": "matrizes-app.points/calc → MatrizesEggOrigin.average → MatrizesData.mean",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Aproveitamento de Ovos por Semana — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "ovos-aproveitamento",
+    "ids": [
+      "eggUse.eggUse"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Aproveitamento de Ovos por Semana — Lote",
+    "kind": "Lista por lote",
+    "chart": "ovos-aproveitamento",
+    "ids": [
+      "eggUse.eggUse"
+    ],
+    "before": "não",
+    "source": "MatrizesLotList.aggregate → mesma calc, período e filtros do card",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Aproveitamento de Ovos por Mês",
+    "kind": "Gráfico",
+    "chart": "ovos-aproveitamento-mes",
+    "ids": [
+      "eggUse.eggUse"
+    ],
+    "before": "sim: fx de Aproveitamento de ovos",
+    "source": "matrizes-app.points/calc → MatrizesEggOrigin.average → MatrizesData.mean",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Aproveitamento de Ovos por Mês — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "ovos-aproveitamento-mes",
+    "ids": [
+      "eggUse.eggUse"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Incubatório",
+    "title": "Aproveitamento de ovos — registros",
+    "kind": "Tabela de registros",
+    "ids": [
+      "eggUse.eggUse",
+      "eggUse.records"
+    ],
+    "before": "sim: fx individual",
+    "source": "matrizes-app.renderEggRecords / matrizes-egg-origin.average; matrizes.inc",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Não Eclodidos",
+    "kind": "KPI",
+    "ids": [
+      "embryo.unhatched"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → embryo por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Infertilidade",
+    "kind": "KPI",
+    "ids": [
+      "embryo.infertile"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → embryo por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Contaminados",
+    "kind": "KPI",
+    "ids": [
+      "embryo.contaminated"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → embryo por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Mortalidade Final",
+    "kind": "KPI",
+    "ids": [
+      "embryo.final"
+    ],
+    "before": "sim: mini-button com modal MatrizesFormulaUI individual",
+    "source": "matrizes-data.simpleIndicators → embryo por registro; média simples",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Não Eclodidos",
+    "kind": "Gráfico",
+    "chart": "nao-eclodidos",
+    "ids": [
+      "embryo.hatch",
+      "embryo.unhatched"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.embryo",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Não Eclodidos — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "nao-eclodidos",
+    "ids": [
+      "embryo.hatch",
+      "embryo.unhatched"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Infertilidade",
+    "kind": "Gráfico",
+    "chart": "infertilidade",
+    "ids": [
+      "embryo.infertile",
+      "embryo.infertileStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.embryo",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Infertilidade — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "infertilidade",
+    "ids": [
+      "embryo.infertile",
+      "embryo.infertileStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Contaminados",
+    "kind": "Gráfico",
+    "chart": "contaminados",
+    "ids": [
+      "embryo.contaminated",
+      "embryo.contaminatedStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.embryo",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Contaminados — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "contaminados",
+    "ids": [
+      "embryo.contaminated",
+      "embryo.contaminatedStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Trincados",
+    "kind": "Gráfico",
+    "chart": "trincados",
+    "ids": [
+      "embryo.crackInc",
+      "embryo.crackTrans"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.embryo",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Trincados — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "trincados",
+    "ids": [
+      "embryo.crackInc",
+      "embryo.crackTrans"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Mortalidade Inicial · 0 a 7 Dias",
+    "kind": "Gráfico",
+    "chart": "mortalidade-inicial",
+    "ids": [
+      "embryo.initial",
+      "embryo.initialStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.embryo",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Mortalidade Inicial · 0 a 7 Dias — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "mortalidade-inicial",
+    "ids": [
+      "embryo.initial",
+      "embryo.initialStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Mortalidade Intermediária · 8 a 14 Dias",
+    "kind": "Gráfico",
+    "chart": "mortalidade-media",
+    "ids": [
+      "embryo.middle",
+      "embryo.middleStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.embryo",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Mortalidade Intermediária · 8 a 14 Dias — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "mortalidade-media",
+    "ids": [
+      "embryo.middle",
+      "embryo.middleStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Mortalidade Final · 15 a 21 Dias",
+    "kind": "Gráfico",
+    "chart": "mortalidade-final",
+    "ids": [
+      "embryo.final",
+      "embryo.finalStd"
+    ],
+    "before": "não",
+    "source": "matrizes-app.points/calc → matrizes-data.embryo",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Embriodiagnóstico",
+    "title": "Mortalidade Final · 15 a 21 Dias — Dados",
+    "kind": "Tabela do gráfico",
+    "chart": "mortalidade-final",
+    "ids": [
+      "embryo.final",
+      "embryo.finalStd"
+    ],
+    "before": "usa cabeçalho do gráfico; em geral sem fx",
+    "source": "matrizes-app.renderChart → mesmos pontos do gráfico",
+    "status": "padronizado"
+  },
+  {
+    "screen": "Produção / Incubatório / Embriodiagnóstico",
+    "title": "Definição do calendário empresarial",
+    "kind": "Regra contextual dos gráficos semanais",
+    "ids": [
+      "context.week"
+    ],
+    "before": "regra implícita em MatrizesData.week",
+    "source": "matrizes-data.week; código preservado",
+    "status": "A DEFINIR — documentação da regra empresarial"
+  }
+]

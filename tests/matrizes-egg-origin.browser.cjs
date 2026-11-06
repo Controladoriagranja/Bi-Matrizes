@@ -75,7 +75,7 @@ const server=http.createServer((req,res)=>{
   assert.ok((await chart(weekly)).points.every(p=>p.eggUse===50));assert.ok((await chart('eclosao')).points.every(p=>p.hatch===80));
   assert.ok((await chart('estoque')).points.every(p=>p.stock===2));assert.ok((await chart('incubacao')).points.every(p=>p.incubated<=700));
   assert.equal(await page.locator('#eggRecords tbody tr').count(),190);
-  assert.equal(await page.locator('[data-filter="farm"][value="FAZENDA 3094"]').count(),0);
+  assert.equal(await page.locator('[data-filter="farm"][value="3094"]').count(),1,'Catálogo de Fazenda permanece completo');
   assert.equal(await page.locator('[data-filter="lineage"][value="ROSS"]').count(),0);
   await clearOrigin();await page.locator('[data-filter="origin"][value="Terceiros"]').check();
   assert.ok((await chart(weekly)).points.every(p=>p.eggUse===80));assert.ok((await chart('eclosao')).points.every(p=>p.hatch===40));
@@ -85,18 +85,18 @@ const server=http.createServer((req,res)=>{
   const both=await chart('incubacao');await clearOrigin();const none=await chart('incubacao');
   assert.equal(none.points.reduce((sum,p)=>sum+p.incubated,0)-both.points.reduce((sum,p)=>sum+p.incubated,0),50);
   // Cascata inversa: fazenda restringe origem.
-  await page.locator('[data-filter-choice="farm"] summary').click();await page.locator('[data-filter="farm"][value="FAZENDA 1972"]').check();
+  await page.locator('[data-filter-choice="farm"] summary').click();await page.locator('[data-filter="farm"][value="1972"]').check();
   assert.ok(await page.locator('[data-filter="origin"][value="Terceiros"]').isDisabled());
-  await page.locator('[data-filter="farm"][value="FAZENDA 1972"]').uncheck();await page.locator('[data-filter-choice="farm"] summary').click();
+  await page.locator('[data-filter="farm"][value="1972"]').uncheck();await page.locator('[data-filter-choice="farm"] summary').click();
   const card=page.locator('#card-'+weekly);await page.locator('#chart-'+weekly).evaluate(el=>echarts.getInstanceByDom(el).trigger('click',{componentType:'series',dataIndex:0}));
   assert.ok((await chart(weekly)).points.every(p=>p.filterKey==='date'&&p.eggUse===60));assert.ok((await chart(weekly)).points.length<=7);
   await card.locator('[data-table]').click();assert.equal(await card.locator('tbody tr').count(),(await chart(weekly)).points.length);
   assert.equal(await card.locator('thead th').first().textContent(),'Dia');await card.locator('[data-table]').click();
-  await card.locator('[data-egg-formula]').click();assert.match(await page.locator('dialog').textContent(),/ovos_incubaveis_pct/);assert.match(await page.locator('dialog').textContent(),/60%/);await page.keyboard.press('Escape');
+  await card.locator('.if-button').click();assert.match(await page.locator('dialog').textContent(),/ovos_incubaveis_pct/);assert.match(await page.locator('dialog').textContent(),/NÃO recalcular/);await page.keyboard.press('Escape');
   await card.locator('.mz-drill-back').click();await card.locator('input[value=dia]').check();
   const limited=(await chart(weekly)).points.length;assert.ok(limited>8&&limited<95);await page.locator('#toggleWeeks').click();assert.equal((await chart(weekly)).points.length,95);
   await card.locator('[data-expand]').click();assert.equal((await chart(weekly)).points.length,95);await page.keyboard.press('Escape');
-  await page.locator('#card-ovos-registros [data-egg-formula]').click();assert.match(await page.locator('dialog').textContent(),/285 percentuais válidos/);await page.keyboard.press('Escape');
+  await page.locator('#card-ovos-registros .if-button').click();assert.match(await page.locator('dialog').textContent(),/Média simples|média simples/);await page.keyboard.press('Escape');
   const out=path.join(root,'artifacts','egg-origin');fs.mkdirSync(out,{recursive:true});
   for(const width of [1440,768,390,320]){
    await page.setViewportSize({width,height:950});
@@ -109,7 +109,7 @@ const server=http.createServer((req,res)=>{
     await page.locator('#card-ovos-registros').screenshot({path:path.join(out,'registros-'+width+'-'+theme+'.png')});
    }
   }
-  await page.locator('[data-filter="origin"][value="Própria"]').check();await page.locator('#clearFilters').click();assert.equal(await page.locator('[data-filter="origin"]:checked').count(),0);
+  await page.setViewportSize({width:1440,height:1000});await page.locator('[data-filter="origin"][value="Própria"]').check();await page.locator('#clearFilters').click();assert.equal(await page.locator('[data-filter="origin"]:checked').count(),0);
   // Persistencia e migracao do filtro antigo; a referencia e reconstruida no reload.
   await page.evaluate(()=>{const key='bi-matrizes-filtros-v3-Incubatório';sessionStorage.setItem(key,JSON.stringify({start:'2026-07-01',end:'2026-10-03',filters:{origin:['Próprio']}}));});
   await page.reload();await page.locator('#loadStatus').filter({hasText:'histórico completo'}).waitFor();assert.ok(await page.locator('[data-filter="origin"][value="Própria"]').isChecked());

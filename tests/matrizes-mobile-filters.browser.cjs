@@ -110,7 +110,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new 
   await open(page);await page.locator('.mobile-filter-scroll').evaluate(el=>el.scrollTop=500);assert.ok(await page.locator('.mobile-filter-scroll').evaluate(el=>el.scrollTop)>0);
   await page.locator('.side-nav-rail').click();assert.equal(await page.locator('.mobile-filter-shell').isVisible(),false);assert.ok(await page.locator('.mobile-filter-shell').evaluate(el=>el.inert));
   await page.locator('.side-nav-close').click();assert.ok(await page.locator('.mobile-filter-shell').isVisible());
-  await page.keyboard.press('Escape');await page.locator('[data-formula]').first().click();assert.equal(await page.locator('.mobile-filter-shell').isVisible(),false);await page.locator('dialog').evaluate(el=>el.close());
+  await page.keyboard.press('Escape');await page.locator('.mz-kpi .if-button').first().click();assert.equal(await page.locator('.mobile-filter-shell').isVisible(),false);await page.locator('dialog').evaluate(el=>el.close());
   await page.locator('[data-expand]').first().click();assert.equal(await page.locator('.mobile-filter-shell').isVisible(),false);await page.keyboard.press('Escape');
   fs.mkdirSync(path.join(root,'artifacts','mobile-filters'),{recursive:true});
   for(const width of [320,390,768,1024])for(const theme of ['light','dark']){
