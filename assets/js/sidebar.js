@@ -31,7 +31,7 @@
                         <span>${item.label}</span>
                     </a>
                 `).join("")}
-            </nav>
+            </nav><nav class="pcp-support-nav" aria-label="Suporte Matrizes"><a href="ajuda.html">Ajuda</a></nav>
         </aside>
     `;
 
