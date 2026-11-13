@@ -30,6 +30,7 @@
       Object.entries(saved.filters||{}).forEach(([key,values])=>{if(Array.isArray(values))state.filters[key]=new Set(values.map(String));});
     }
   } catch (_) { /* A sessão pode impedir armazenamento. */ }
+  const overviewQuery=new URLSearchParams(location.search);if(overviewQuery.get('origem')==='visao-geral'&&/^\d{4}-\d{2}-\d{2}$/.test(overviewQuery.get('data_inicio')||'')&&/^\d{4}-\d{2}-\d{2}$/.test(overviewQuery.get('data_fim')||'')){state.start=overviewQuery.get('data_inicio');state.end=overviewQuery.get('data_fim');state.endMode='manual';state.filters={};state.hasSavedFilters=true;}
   if(eggOrigin&&state.filters.origin)state.filters.origin=new Set([...state.filters.origin].map(eggOrigin.canonical).filter(Boolean));
   const filterValue=(row,key)=>String(key==='farm'?(row.farmKey??row.farm??''):(row[key]??''));
   const selected=key=>state.filters[key]||(state.filters[key]=new Set());
